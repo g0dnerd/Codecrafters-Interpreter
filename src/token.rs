@@ -89,7 +89,13 @@ pub struct NumberLiteral {
 
 impl LiteralValue for NumberLiteral {
     fn print_value(&self) -> String {
-        self.value.to_string()
+        // In Rust, `42.0f32.to_string()` yields `42` and not `42.0`,
+        // so we have to handle that case manually
+        if self.value.fract() == 0.0 {
+            return format!("{:.1}", self.value);
+        } else {
+            self.value.to_string()
+        }
     }
 }
 
