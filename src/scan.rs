@@ -1,6 +1,22 @@
-use std::str::FromStr;
+use std::{
+    fmt,
+    str::FromStr
+};
 
 use crate::token::{ Token, TokenType };
+
+type Result<T> = std::result::Result<T, UnexpectedCharacterError>;
+
+#[derive(Debug, Clone)]
+struct UnexpectedCharacterError {
+    character: char,
+}
+
+impl fmt::Display for UnexpectedCharacterError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Unexpected character: {}", self.character)
+    }
+}
 
 pub struct Scanner {
     source: String,
@@ -28,7 +44,7 @@ impl Scanner {
             self.start = self.current;
             match self.scan_token() {
                 Ok(_) => (),
-                Err(e) => eprintln!("{}", e)
+                Err(e) => eprintln!("[line {}] Error: {e:?}: ", e)
             }
         }
 
@@ -45,7 +61,7 @@ impl Scanner {
         self.current >= self.source.len()
     }
 
-    fn scan_token(&mut self) -> Result<(), &'static str> {
+    fn scan_token(&mut self) -> Result<()> {
         let c = self.advance().expect("Expected character but found none");
         eprintln!("Parsing character {}", c);
         match c {
@@ -63,7 +79,7 @@ impl Scanner {
             ' ' | '\r' | '\n' | '\t' => Ok(()),
             _ => {
                 self.has_error = true;
-                Err(&format!("[line {}] Error: Unxpected character: {}", self.line, &c))
+                UnexpectedCharacterError
             },
         }
     }
