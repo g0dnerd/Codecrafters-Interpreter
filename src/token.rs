@@ -1,56 +1,6 @@
 use std::fmt;
 use strum_macros::Display;
-
-#[derive(Debug, Display)]
-#[strum(serialize_all = "SCREAMING_SNAKE_CASE")]
-pub enum TokenType {
-    // Single-character tokens
-    LeftParen, // (
-    RightParen, // )
-    LeftBrace, // {
-    RightBrace, // }
-    Comma, // ,
-    Dot, // .
-    Minus, // -
-    Plus, // +
-    Semicolon, // ;
-    Slash, // /
-    Star, // *
-
-    // One or two-character tokens
-    Bang, // !
-    BangEqual, // !=
-    Equal, // =
-    EqualEqual, // ==
-    Greater, // >
-    GreaterEqual, // >=
-    Less, // <
-    LessEqual, // <=
-
-    // Literals
-    Identifier,
-    String,
-    Number,
-
-    // Keywords
-    And,
-    Class,
-    Else,
-    False,
-    Fun,
-    For,
-    If,
-    Nil,
-    Or,
-    Print,
-    Return,
-    Super,
-    This,
-    True,
-    Var,
-    While,
-    Eof,
-}
+use crate::TokenType;
 
 pub trait LiteralValue {
     fn print_value(&self) -> String;

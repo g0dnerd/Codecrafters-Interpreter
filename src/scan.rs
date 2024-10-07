@@ -2,10 +2,10 @@ use std::{
     fmt,
     str::FromStr,
 };
+use crate::TokenType;
 use crate::token::{
     LiteralValue,
     Token,
-    TokenType,
     NumberLiteral,
     StringLiteral,
 };
@@ -162,15 +162,16 @@ impl Scanner {
         }
     }
 
+    // Returns the character at the upcoming position, if there is one
     fn advance(&mut self) -> Option<char> {
         self.current += 1;
         self.source.chars().nth(self.current - 1)
     }
 
+    /// Returns true if the next character is equal to `expected`
     fn match_next(&mut self, expected: char) -> bool {
         if self.is_at_end() { return false; }
-        let next_char = self.source.chars().nth(self.current)
-            .expect("no character while matching operator");
+        let next_char = self.peek();
         if next_char != expected { return false; }
 
         self.current += 1;
@@ -200,6 +201,7 @@ impl Scanner {
     }
 
     fn add_literal_token(&mut self, token_type: TokenType, literal: Option<Box<dyn LiteralValue>>) {
+        // Parse lexeme from source
         let text = String::from_str(&self.source[self.start..self.current])
             .expect("to be able to parse str to String");
         self.tokens.push(
@@ -228,6 +230,7 @@ impl Scanner {
         // Advance to the closing "
         self.advance();
 
+        // Parse the string literals value from source
         let literal = StringLiteral {
             value: String::from_str(&self.source[self.start + 1..self.current - 1])
                 .expect("to be able to parse str to String")
@@ -240,14 +243,17 @@ impl Scanner {
     }
 
     fn number(& mut self) -> Result<()> {
-        while self.peek().is_numeric() { self.advance(); }
+        // Keep parsing while the next character is numeric
+        while self.peek().is_digit(10) { self.advance(); }
 
-        if self.peek() == '.' && self.peek_next().is_numeric() {
+        // If the next character is a decimal point AND the character after that is numeric,
+        // keep parsing
+        if self.peek() == '.' && self.peek_next().is_digit(10) {
             self.advance();
-
             while self.peek().is_numeric() { self.advance(); }
         }
 
+        // TODO: this feels dirty and I don't like it
         let value_str = &self.source[self.start..self.current];
         let literal = NumberLiteral {
             value: value_str.parse().expect("to be able to parse number literal value to number")
