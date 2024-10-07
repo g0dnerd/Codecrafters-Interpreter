@@ -160,10 +160,10 @@ impl Scanner {
             _ => {
                 // We assume that every alphabetic character starts an identifier
                 if c.is_alphabetic() {
-                    match self.identifier() {
+                    return match self.identifier() {
                         Ok(_) => Ok(()),
                         Err(e) => Err(e)
-                    }
+                    };
                 }
                 // Everything else is an unkown character, raise an error 
                 Err(UnexpectedCharacterError::UnknownCharacter(c))
@@ -280,7 +280,7 @@ impl Scanner {
         while self.peek().is_alphanumeric() || self.peek() == '_' { self.advance(); }
         let value_str = &self.source[self.start..self.current];
         if let Some(identifier_type) = KEYWORDS.lock().unwrap().get(value_str) {
-            self.add_token(identifier_type);
+            self.add_token(*identifier_type);
             return Ok(());
         } else {
             self.add_token(TokenType::Identifier);
