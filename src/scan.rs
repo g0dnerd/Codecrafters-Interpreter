@@ -2,7 +2,7 @@ use std::{
     fmt,
     str::FromStr,
 };
-use crate::TokenType;
+use crate::{TokenType, KEYWORDS};
 use crate::token::{
     LiteralValue,
     Token,
@@ -157,8 +157,17 @@ impl Scanner {
             // Ignore whitespace
             ' ' | '\r' | '\t' => Ok(()),
 
-            // Everything else is an unkown character, raise an error 
-            _ => Err(UnexpectedCharacterError::UnknownCharacter(c))
+            _ => {
+                // We assume that every alphabetic character starts an identifier
+                if c.is_alphabetic() {
+                    match self.identifier() {
+                        Ok(_) => Ok(()),
+                        Err(e) => Err(e)
+                    }
+                }
+                // Everything else is an unkown character, raise an error 
+                Err(UnexpectedCharacterError::UnknownCharacter(c))
+            }
         }
     }
 
@@ -242,7 +251,7 @@ impl Scanner {
         Ok(())
     }
 
-    fn number(& mut self) -> Result<()> {
+    fn number(&mut self) -> Result<()> {
         // Keep parsing while the next character is numeric
         while self.peek().is_digit(10) { self.advance(); }
 
@@ -263,6 +272,21 @@ impl Scanner {
             TokenType::Number, Some(Box::new(literal))
         );
         Ok(())
+    }
+
+    // TODO: does this need a result? When would this error?
+    fn identifier(&mut self) -> Result<()> {
+        // Keep parsing while the next character is alphanumeric or an underscore _
+        while self.peek().is_alphanumeric() || self.peek() == '_' { self.advance(); }
+        let value_str = &self.source[self.start..self.current];
+        if let Some(identifier_type) = KEYWORDS.lock().unwrap().get(value_str) {
+            self.add_token(identifier_type);
+            return Ok(());
+        } else {
+            self.add_token(TokenType::Identifier);
+            return Ok(());
+        }
+
     }
 
     pub fn print(&self) {
