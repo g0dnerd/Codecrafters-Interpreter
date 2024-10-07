@@ -75,6 +75,22 @@ impl Scanner {
             ';' => Ok(self.add_token(TokenType::Semicolon)),
             '/' => Ok(self.add_token(TokenType::Slash)),
             '*' => Ok(self.add_token(TokenType::Star)),
+            '!' => {
+                let t = if self.match_next('=') { TokenType::BangEqual } else { TokenType::Bang };
+                return Ok(self.add_token(t));
+            },
+            '=' => {
+                let t = if self.match_next('=') { TokenType::EqualEqual } else { TokenType::Equal };
+                return Ok(self.add_token(t));
+            },
+            '<' => {
+                let t = if self.match_next('=') { TokenType::LessEqual } else { TokenType::Less };
+                return Ok(self.add_token(t));
+            },
+            '>' => {
+                let t = if self.match_next('=') { TokenType::GreaterEqual } else { TokenType::Greater };
+                return Ok(self.add_token(t));
+            },
             ' ' | '\r' | '\n' | '\t' => Ok(()),
             _ => {
                 self.has_error = true;
@@ -86,6 +102,14 @@ impl Scanner {
     fn advance(&mut self) -> Option<char> {
         self.current += 1;
         self.source.chars().nth(self.current - 1)
+    }
+
+    fn match_next(&mut self, expected: char) -> bool {
+        if self.is_at_end() { return false; }
+        if self.source.chars().nth(self.current).expect("no character while matching operator") != expected { return false; }
+
+        self.current += 1;
+        true
     }
 
     fn add_token(&mut self, token_type: TokenType) {
