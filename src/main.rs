@@ -1,9 +1,10 @@
 use std::env;
 use std::fs;
 use std::io::{self, Write};
+use std::process::ExitCode;
 use codecrafters_interpreter::scan::*;
 
-fn main() {
+fn main() -> ExitCode {
     let args: Vec<String> = env::args().collect();
     if args.len() < 3 {
         writeln!(io::stderr(), "Usage: {} tokenize <filename>", args[0]).unwrap();
@@ -26,10 +27,14 @@ fn main() {
             let mut scanner = Scanner::new(&file_contents);
             scanner.scan_tokens();
             scanner.print();
+            if scanner.has_error {
+                return ExitCode::from(65);
+            }
         }
         _ => {
             writeln!(io::stderr(), "Unknown command: {}", command).unwrap();
             return;
         }
     }
+    ExitCode::SUCCESS
 }

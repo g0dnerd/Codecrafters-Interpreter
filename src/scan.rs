@@ -24,7 +24,7 @@ pub struct Scanner {
     start: usize,
     current: usize,
     line: usize,
-    has_error: bool,
+    pub has_error: bool,
 }
 
 impl Scanner {
