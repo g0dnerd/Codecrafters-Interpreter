@@ -52,7 +52,10 @@ impl Scanner {
             self.start = self.current;
             match self.scan_token() {
                 Ok(_) => (),
-                Err(e) => eprintln!("[line {}] Error: {e}", self.line)
+                Err(e) => {
+                    self.has_error = true;
+                    eprintln!("[line {}] Error: {e}", self.line)
+                }
             }
         }
 
@@ -114,10 +117,7 @@ impl Scanner {
             },
             '\n' => Ok(self.line += 1),
             ' ' | '\r' | '\t' => Ok(()),
-            _ => {
-                self.has_error = true;
-                Err(UnexpectedCharacterError::UnknownCharacter(String::from(c)))
-            },
+            _ => Err(UnexpectedCharacterError::UnknownCharacter(String::from(c)))
         }
     }
 
