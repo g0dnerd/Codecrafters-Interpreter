@@ -23,9 +23,9 @@ fn main() {
                 String::new()
             });
 
+            eprintln!("Read file contents: {}", &file_contents);
             // Uncomment this block to pass the first stage
             if !file_contents.is_empty() {
-                eprintln!("Read file contents: {}", &file_contents);
                 let mut scanner = Scanner::new(&file_contents);
                 scanner.scan_tokens();
                 scanner.print();
