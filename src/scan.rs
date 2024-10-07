@@ -301,7 +301,7 @@ impl Scanner {
 impl fmt::Display for Scanner {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         for t in &self.tokens {
-            write!(f, "{}", t)?;
+            write!(f, "{}\n", t)?;
         }
         Ok(())
     }
