@@ -280,7 +280,7 @@ impl Scanner {
         while self.peek().is_alphanumeric() || self.peek() == '_' { self.advance(); }
         let value_str = &self.source[self.start..self.current];
         if let Some(identifier_type) = KEYWORDS.lock().unwrap().get(value_str) {
-            self.add_token(*identifier_type);
+            self.add_token(identifier_type.clone());
             return Ok(());
         } else {
             self.add_token(TokenType::Identifier);

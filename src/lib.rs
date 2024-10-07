@@ -6,7 +6,7 @@ use strum_macros::Display;
 pub mod scan;
 pub mod token;
 
-#[derive(Debug, Display)]
+#[derive(Debug, Display, Copy, Clone)]
 #[strum(serialize_all = "SCREAMING_SNAKE_CASE")]
 pub enum TokenType {
     // Single-character tokens
