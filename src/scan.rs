@@ -159,7 +159,7 @@ impl Scanner {
 
             _ => {
                 // We assume that every alphabetic character starts an identifier
-                if c.is_alphabetic() {
+                if c.is_alphabetic() || c == '_' {
                     return match self.identifier() {
                         Ok(_) => Ok(()),
                         Err(e) => Err(e)
