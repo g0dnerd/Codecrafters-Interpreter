@@ -9,7 +9,7 @@ type Result<T> = std::result::Result<T, UnexpectedCharacterError>;
 
 #[derive(Debug, Clone)]
 struct UnexpectedCharacterError {
-    character: char,
+    character: &char,
 }
 
 impl fmt::Display for UnexpectedCharacterError {
@@ -79,7 +79,7 @@ impl Scanner {
             ' ' | '\r' | '\n' | '\t' => Ok(()),
             _ => {
                 self.has_error = true;
-                UnexpectedCharacterError
+                UnexpectedCharacterError { character: &c }
             },
         }
     }
