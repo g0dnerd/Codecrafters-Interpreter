@@ -63,7 +63,7 @@ impl Scanner {
             ' ' | '\r' | '\n' | '\t' => Ok(()),
             _ => {
                 self.has_error = true;
-                Err(&format!("[line {}] Error: Unxpected character: {}", self.line, c))
+                Err(&format!("[line {}] Error: Unxpected character: {}", self.line, &c))
             },
         }
     }
