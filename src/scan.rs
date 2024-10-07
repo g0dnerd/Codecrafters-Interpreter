@@ -8,6 +8,7 @@ pub struct Scanner {
     start: usize,
     current: usize,
     line: usize,
+    has_error: bool,
 }
 
 impl Scanner {
@@ -18,13 +19,17 @@ impl Scanner {
             start: 0,
             current: 0,
             line: 1,
+            has_error: false,
         }
     }
 
     pub fn scan_tokens(&mut self) {
         while !self.is_at_end() {
             self.start = self.current;
-            self.scan_token();
+            match self.scan_token() {
+                Ok(_) => (),
+                Err(e) => eprintln!("{}", e)
+            }
         }
 
         let initial_token = Token::new(
@@ -40,23 +45,26 @@ impl Scanner {
         self.current >= self.source.len()
     }
 
-    fn scan_token(&mut self) {
+    fn scan_token(&mut self) -> Result<(), &'static str> {
         let c = self.advance().expect("Expected character but found none");
         eprintln!("Parsing character {}", c);
         match c {
-            '(' => self.add_token(TokenType::LeftParen),
-            ')' => self.add_token(TokenType::RightParen),
-            '{' => self.add_token(TokenType::LeftBrace),
-            '}' => self.add_token(TokenType::RightBrace),
-            ',' => self.add_token(TokenType::Comma),
-            '.' => self.add_token(TokenType::Dot),
-            '-' => self.add_token(TokenType::Minus),
-            '+' => self.add_token(TokenType::Plus),
-            ';' => self.add_token(TokenType::Semicolon),
-            '/' => self.add_token(TokenType::Slash),
-            '*' => self.add_token(TokenType::Star),
-            ' ' | '\r' | '\n' | '\t' => (),
-            _ => eprintln!("Unexpected character {}", c)
+            '(' => Ok(self.add_token(TokenType::LeftParen)),
+            ')' => Ok(self.add_token(TokenType::RightParen)),
+            '{' => Ok(self.add_token(TokenType::LeftBrace)),
+            '}' => Ok(self.add_token(TokenType::RightBrace)),
+            ',' => Ok(self.add_token(TokenType::Comma)),
+            '.' => Ok(self.add_token(TokenType::Dot)),
+            '-' => Ok(self.add_token(TokenType::Minus)),
+            '+' => Ok(self.add_token(TokenType::Plus)),
+            ';' => Ok(self.add_token(TokenType::Semicolon)),
+            '/' => Ok(self.add_token(TokenType::Slash)),
+            '*' => Ok(self.add_token(TokenType::Star)),
+            ' ' | '\r' | '\n' | '\t' => Ok(()),
+            _ => {
+                self.has_error = true;
+                Err(&format!("[line {}] Error: Unxpected character: {}", self.line, c))
+            },
         }
     }
 
