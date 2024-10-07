@@ -33,7 +33,7 @@ fn main() -> ExitCode {
         }
         _ => {
             writeln!(io::stderr(), "Unknown command: {}", command).unwrap();
-            return;
+            return ExitCode::FAILURE;
         }
     }
     ExitCode::SUCCESS
