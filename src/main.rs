@@ -24,7 +24,7 @@ fn main() -> ExitCode {
                 String::new()
             });
 
-            let mut scanner = Scanner::new(&file_contents);
+            let mut scanner = Scanner::new(file_contents);
             scanner.scan_tokens();
             scanner.print();
             if scanner.has_error {

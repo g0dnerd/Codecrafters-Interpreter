@@ -52,32 +52,53 @@ pub enum TokenType {
     Eof,
 }
 
-#[derive(Debug)]
+pub trait LiteralValue {
+    fn print_value(&self) -> String;
+}
+
 pub struct Token {
     token_type: TokenType,
     lexeme: String,
-    literal: Option<String>,
+    literal: Option<Box<dyn LiteralValue>>,
     line: usize,
 }
 
 impl fmt::Display for Token {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let literal_out = if self.literal.is_none() {
-            "null"
-        } else {
-            &format!("{}", self.literal.as_ref().unwrap())
-        };
+        let literal_out: String = if let Some(l) = &self.literal {
+            l.print_value()
+        } else { String::from("null") };
         write!(f, "{} {} {}", self.token_type, self.lexeme, literal_out)
     }
 }
 
 impl Token {
-    pub fn new(token_type: TokenType, lexeme: String, literal: Option<String>, line: usize) -> Self {
+    pub fn new(token_type: TokenType, lexeme: String, literal: Option<Box<dyn LiteralValue>>, line: usize) -> Self {
         Self {
             token_type,
             lexeme,
             literal,
             line,
         }
+    }
+}
+
+pub struct NumberLiteral {
+    pub value: f32,
+}
+
+impl LiteralValue for NumberLiteral {
+    fn print_value(&self) -> String {
+        self.value.to_string()
+    }
+}
+
+pub struct StringLiteral {
+    pub value: String,
+}
+
+impl LiteralValue for StringLiteral {
+    fn print_value(&self) -> String {
+        self.value.clone()
     }
 }

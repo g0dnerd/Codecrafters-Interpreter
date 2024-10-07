@@ -2,14 +2,19 @@ use std::{
     fmt,
     str::FromStr,
 };
-
-use crate::token::{ Token, TokenType };
+use crate::token::{
+    LiteralValue,
+    Token,
+    TokenType,
+    NumberLiteral,
+    StringLiteral,
+};
 
 type Result<T> = std::result::Result<T, UnexpectedCharacterError>;
 
 #[derive(Debug)]
 enum UnexpectedCharacterError {
-    UnknownCharacter(String),
+    UnknownCharacter(char),
     UnterminatedStringLiteral,
 }
 
@@ -36,9 +41,9 @@ pub struct Scanner {
 }
 
 impl Scanner {
-    pub fn new(source: &str) -> Self {
+    pub fn new(source: String) -> Self {
         Self {
-            source: String::from_str(source).expect("to be able to parse input to String"),
+            source,
             tokens: vec![],
             start: 0,
             current: 0,
@@ -59,15 +64,16 @@ impl Scanner {
             }
         }
 
-        let initial_token = Token::new(
+        let eof_token = Token::new(
             TokenType::Eof,
             String::new(),
             None,
             self.line
         );
-        self.tokens.push(initial_token);
+        self.tokens.push(eof_token);
     }
 
+    // Returns true if the current character is the last one in self.source
     fn is_at_end(&self) -> bool {
         self.current >= self.source.len()
     }
@@ -75,6 +81,7 @@ impl Scanner {
     fn scan_token(&mut self) -> Result<()> {
         let c = self.advance().expect("Expected character but found none");
         match c {
+            // Single-character tokens
             '(' => Ok(self.add_token(TokenType::LeftParen)),
             ')' => Ok(self.add_token(TokenType::RightParen)),
             '{' => Ok(self.add_token(TokenType::LeftBrace)),
@@ -85,20 +92,38 @@ impl Scanner {
             '+' => Ok(self.add_token(TokenType::Plus)),
             ';' => Ok(self.add_token(TokenType::Semicolon)),
             '*' => Ok(self.add_token(TokenType::Star)),
+
+            // Operators can potentially have multiple characters
             '!' => {
-                let t = if self.match_next('=') { TokenType::BangEqual } else { TokenType::Bang };
+                let t = if self.match_next('=') {
+                    TokenType::BangEqual
+                } else {
+                    TokenType::Bang
+                };
                 return Ok(self.add_token(t));
             },
             '=' => {
-                let t = if self.match_next('=') { TokenType::EqualEqual } else { TokenType::Equal };
+                let t = if self.match_next('=') {
+                    TokenType::EqualEqual
+                } else {
+                    TokenType::Equal
+                };
                 return Ok(self.add_token(t));
             },
             '<' => {
-                let t = if self.match_next('=') { TokenType::LessEqual } else { TokenType::Less };
+                let t = if self.match_next('=') {
+                    TokenType::LessEqual
+                } else {
+                    TokenType::Less
+                };
                 return Ok(self.add_token(t));
             },
             '>' => {
-                let t = if self.match_next('=') { TokenType::GreaterEqual } else { TokenType::Greater };
+                let t = if self.match_next('=') {
+                    TokenType::GreaterEqual
+                } else {
+                    TokenType::Greater
+                };
                 return Ok(self.add_token(t));
             },
             '/' => {
@@ -109,15 +134,31 @@ impl Scanner {
                     return Ok(self.add_token(TokenType::Slash));
                 }
             },
+
+            // '"' begins a string literal
             '"' => {
                 match self.string() {
                     Ok(_) => Ok(()),
                     Err(e) => Err(e)
                 }
             },
+
+            // any digit begins a number literal
+            '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' => {
+                match self.number() {
+                    Ok(_) => Ok(()),
+                    Err(e) => Err(e)
+                }
+            },
+
+            // Newlines
             '\n' => Ok(self.line += 1),
+
+            // Ignore whitespace
             ' ' | '\r' | '\t' => Ok(()),
-            _ => Err(UnexpectedCharacterError::UnknownCharacter(String::from(c)))
+
+            // Everything else is an unkown character, raise an error 
+            _ => Err(UnexpectedCharacterError::UnknownCharacter(c))
         }
     }
 
@@ -128,7 +169,9 @@ impl Scanner {
 
     fn match_next(&mut self, expected: char) -> bool {
         if self.is_at_end() { return false; }
-        if self.source.chars().nth(self.current).expect("no character while matching operator") != expected { return false; }
+        let next_char = self.source.chars().nth(self.current)
+            .expect("no character while matching operator");
+        if next_char != expected { return false; }
 
         self.current += 1;
         true
@@ -143,12 +186,22 @@ impl Scanner {
         }
     }
 
+    fn peek_next(&self) -> char {
+        if self.is_at_end() { return '\0'; }
+        if let Some(c) = self.source.chars().nth(self.current + 1) {
+            return c;
+        } else {
+            return '\0';
+        }
+    }
+
     fn add_token(&mut self, token_type: TokenType) {
         self.add_literal_token(token_type, None);
     }
 
-    fn add_literal_token(&mut self, token_type: TokenType, literal: Option<String>) {
-        let text = String::from_str(&self.source[self.start..self.current]).expect("to be able to parse str to String");
+    fn add_literal_token(&mut self, token_type: TokenType, literal: Option<Box<dyn LiteralValue>>) {
+        let text = String::from_str(&self.source[self.start..self.current])
+            .expect("to be able to parse str to String");
         self.tokens.push(
             Token::new(token_type, text, literal, self.line)
         );
@@ -165,6 +218,8 @@ impl Scanner {
             self.advance();
         }
 
+        // If we reach the end of the file before finding the closing ", the literal is
+        // unterminated.
         if self.is_at_end() {
             self.line -= lines;
             return Err(UnexpectedCharacterError::UnterminatedStringLiteral);
@@ -173,8 +228,34 @@ impl Scanner {
         // Advance to the closing "
         self.advance();
 
-        let value = String::from_str(&self.source[self.start + 1..self.current - 1]).expect("to be able to parse str to String");
-        self.add_literal_token(TokenType::String, Some(value));
+        let literal = StringLiteral {
+            value: String::from_str(&self.source[self.start + 1..self.current - 1])
+                .expect("to be able to parse str to String")
+        };
+
+        self.add_literal_token(
+            TokenType::String, Some(Box::new(literal))
+        );
+        Ok(())
+    }
+
+    fn number(& mut self) -> Result<()> {
+        while self.peek().is_numeric() { self.advance(); }
+
+        if self.peek() == '.' && self.peek_next().is_numeric() {
+            self.advance();
+
+            while self.peek().is_numeric() { self.advance(); }
+        }
+
+        let value_str = &self.source[self.start..self.current];
+        let literal = NumberLiteral {
+            value: value_str.parse().expect("to be able to parse number literal value to number")
+        };
+
+        self.add_literal_token(
+            TokenType::Number, Some(Box::new(literal))
+        );
         Ok(())
     }
 
