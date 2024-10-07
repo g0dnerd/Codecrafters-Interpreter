@@ -1,3 +1,5 @@
+use strum_macros::Display;
+
 pub mod scan;
 pub mod token;
 

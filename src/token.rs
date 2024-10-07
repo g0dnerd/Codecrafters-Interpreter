@@ -1,5 +1,4 @@
 use std::fmt;
-use strum_macros::Display;
 use crate::TokenType;
 
 pub trait LiteralValue {
