@@ -5,6 +5,7 @@ pub trait LiteralValue {
     fn print_value(&self) -> String;
 }
 
+#[allow(dead_code)] // TODO: remove once `line` gets used
 pub struct Token {
     token_type: TokenType,
     lexeme: String,

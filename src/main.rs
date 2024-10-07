@@ -1,6 +1,5 @@
 use std::env;
 use std::fs;
-use std::io::{self, Write};
 use std::process::ExitCode;
 use codecrafters_interpreter::scan::*;
 
