@@ -65,7 +65,7 @@ impl fmt::Display for Token {
         let literal_out = if self.literal.is_none() {
             "null"
         } else {
-            &format!("{:?}", self.literal)
+            &format!("{}", self.literal.as_ref().unwrap())
         };
         write!(f, "{} {} {}", self.token_type, self.lexeme, literal_out)
     }

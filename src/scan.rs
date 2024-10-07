@@ -97,7 +97,8 @@ impl Scanner {
                 } else {
                     return Ok(self.add_token(TokenType::Slash));
                 }
-            }
+            },
+            '"' => Ok(self.string()),
             '\n' => Ok(self.line += 1),
             ' ' | '\r' | '\t' => Ok(()),
             _ => {
@@ -130,9 +131,33 @@ impl Scanner {
     }
 
     fn add_token(&mut self, token_type: TokenType) {
-        let text = &self.source[self.start..self.current];
-        let token = Token::new(token_type, String::from_str(text).expect("to be able to parse input to String"), None, self.line);
-        self.tokens.push(token);
+        self.add_literal_token(token_type, None);
+    }
+
+    fn add_literal_token(&mut self, token_type: TokenType, literal: Option<String>) {
+        let text = String::from_str(&self.source[self.start..self.current]).expect("to be able to parse str to String");
+        self.tokens.push(
+            Token::new(token_type, text, literal, self.line)
+        );
+    }
+
+    fn string(&mut self) {
+        // While we haven't reached the closing " or the end of the line, advance
+        while self.peek() != '"' && !self.is_at_end() {
+            if self.peek() == '\n' { self.line += 1; }
+            self.advance();
+        }
+
+        if self.is_at_end() {
+            todo!(); // TODO: Unterminated string literal error type
+            return;
+        }
+
+        // Advance to the closing "
+        self.advance();
+
+        let value = String::from_str(&self.source[self.start + 1..self.current - 1]).expect("to be able to parse str to String");
+        self.add_literal_token(TokenType::String, Some(value));
     }
 
     pub fn print(&self) {
