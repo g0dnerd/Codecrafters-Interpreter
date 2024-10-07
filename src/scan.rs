@@ -171,7 +171,8 @@ impl Scanner {
         }
     }
 
-    // Returns the character at the upcoming position, if there is one
+    /// Advances the pointer one position, then
+    /// returns the new current character, if there is one
     fn advance(&mut self) -> Option<char> {
         self.current += 1;
         self.source.chars().nth(self.current - 1)
@@ -187,6 +188,7 @@ impl Scanner {
         true
     }
 
+    /// Returns the character at the upcoming position, if there is one
     fn peek(&self) -> char {
         if self.is_at_end() { return '\0'; }
         if let Some(c) = self.source.chars().nth(self.current) {
@@ -196,6 +198,7 @@ impl Scanner {
         }
     }
 
+    /// Returns the character two positions ahead, if there is one
     fn peek_next(&self) -> char {
         if self.is_at_end() { return '\0'; }
         if let Some(c) = self.source.chars().nth(self.current + 1) {
@@ -209,7 +212,11 @@ impl Scanner {
         self.add_literal_token(token_type, None);
     }
 
-    fn add_literal_token(&mut self, token_type: TokenType, literal: Option<Box<dyn LiteralValue>>) {
+    fn add_literal_token(
+        &mut self,
+        token_type: TokenType,
+        literal: Option<Box<dyn LiteralValue>>
+    ) {
         // Parse lexeme from source
         let text = String::from_str(&self.source[self.start..self.current])
             .expect("to be able to parse str to String");
@@ -289,9 +296,13 @@ impl Scanner {
 
     }
 
-    pub fn print(&self) {
+}
+
+impl fmt::Display for Scanner {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         for t in &self.tokens {
-            println!("{}", t);
+            write!(f, "{}", t)?;
         }
+        Ok(())
     }
 }

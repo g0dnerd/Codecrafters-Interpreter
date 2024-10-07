@@ -26,7 +26,7 @@ fn main() -> ExitCode {
 
             let mut scanner = Scanner::new(file_contents);
             scanner.scan_tokens();
-            scanner.print();
+            println!("{}", scanner);
             if scanner.has_error {
                 return ExitCode::from(65);
             }
