@@ -1,20 +1,28 @@
 use std::{
     fmt,
-    str::FromStr
+    str::FromStr,
 };
 
 use crate::token::{ Token, TokenType };
 
 type Result<T> = std::result::Result<T, UnexpectedCharacterError>;
 
-#[derive(Debug, Clone)]
-struct UnexpectedCharacterError {
-    character: char,
+#[derive(Debug)]
+enum UnexpectedCharacterError {
+    UnknownCharacter(String),
+    UnterminatedStringLiteral,
 }
 
 impl fmt::Display for UnexpectedCharacterError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Unexpected character: {}", self.character)
+        match self {
+            UnexpectedCharacterError::UnknownCharacter(c) => {
+                write!(f, "Unexpected character: {}", &c)
+            },
+            UnexpectedCharacterError::UnterminatedStringLiteral => {
+                write!(f, "Unterminated string.")
+            }
+        }
     }
 }
 
@@ -98,12 +106,17 @@ impl Scanner {
                     return Ok(self.add_token(TokenType::Slash));
                 }
             },
-            '"' => Ok(self.string()),
+            '"' => {
+                match self.string() {
+                    Ok(_) => Ok(()),
+                    Err(e) => Err(e)
+                }
+            },
             '\n' => Ok(self.line += 1),
             ' ' | '\r' | '\t' => Ok(()),
             _ => {
                 self.has_error = true;
-                Err(UnexpectedCharacterError { character: c })
+                Err(UnexpectedCharacterError::UnknownCharacter(String::from(c)))
             },
         }
     }
@@ -141,16 +154,20 @@ impl Scanner {
         );
     }
 
-    fn string(&mut self) {
+    fn string(&mut self) -> Result<()> {
+        let mut lines: usize = 0;
+
         // While we haven't reached the closing " or the end of the line, advance
         while self.peek() != '"' && !self.is_at_end() {
-            if self.peek() == '\n' { self.line += 1; }
+            if self.peek() == '\n' {
+                lines += 1;
+                self.line += lines; }
             self.advance();
         }
 
         if self.is_at_end() {
-            todo!(); // TODO: Unterminated string literal error type
-            return;
+            self.line -= lines;
+            return Err(UnexpectedCharacterError::UnterminatedStringLiteral);
         }
 
         // Advance to the closing "
@@ -158,6 +175,7 @@ impl Scanner {
 
         let value = String::from_str(&self.source[self.start + 1..self.current - 1]).expect("to be able to parse str to String");
         self.add_literal_token(TokenType::String, Some(value));
+        Ok(())
     }
 
     pub fn print(&self) {
