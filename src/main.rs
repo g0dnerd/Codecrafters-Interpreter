@@ -1,6 +1,7 @@
 use std::env;
 use std::fs;
 use std::io::{self, Write};
+use codecrafters_interpreter::scan::*;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -24,9 +25,12 @@ fn main() {
 
             // Uncomment this block to pass the first stage
             if !file_contents.is_empty() {
-                panic!("Scanner not implemented");
+                eprintln!("Read file contents: {}", &file_contents);
+                let mut scanner = Scanner::new(&file_contents);
+                scanner.scan_tokens();
+                scanner.print();
             } else {
-                println!("EOF  null"); // Placeholder, remove this line when implementing the scanner
+                panic!("Cannot parse empty file");
             }
         }
         _ => {
