@@ -98,7 +98,8 @@ impl Scanner {
                     return Ok(self.add_token(TokenType::Slash));
                 }
             }
-            ' ' | '\r' | '\n' | '\t' => Ok(()),
+            '\n' => Ok(self.line += 1),
+            ' ' | '\r' | '\t' => Ok(()),
             _ => {
                 self.has_error = true;
                 Err(UnexpectedCharacterError { character: c })
