@@ -23,15 +23,9 @@ fn main() {
                 String::new()
             });
 
-            eprintln!("Read file contents: {}", &file_contents);
-            // Uncomment this block to pass the first stage
-            if !file_contents.is_empty() {
-                let mut scanner = Scanner::new(&file_contents);
-                scanner.scan_tokens();
-                scanner.print();
-            } else {
-                panic!("Cannot parse empty file");
-            }
+            let mut scanner = Scanner::new(&file_contents);
+            scanner.scan_tokens();
+            scanner.print();
         }
         _ => {
             writeln!(io::stderr(), "Unknown command: {}", command).unwrap();
