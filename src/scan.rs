@@ -79,7 +79,8 @@ impl Scanner {
     }
 
     fn scan_token(&mut self) -> Result<()> {
-        let c = self.advance().expect("Expected character but found none");
+        let c = self.advance()
+            .expect("Expected character but found none");
         match c {
             // Single-character tokens
             '(' => Ok(self.add_token(TokenType::LeftParen)),
@@ -127,12 +128,14 @@ impl Scanner {
                 return Ok(self.add_token(t));
             },
             '/' => {
-                if self.match_next('/') {
-                    while self.peek() != '\n' && !self.is_at_end() { self.advance(); }
-                    return Ok(())
+                return if self.match_next('/') {
+                    while self.peek() != '\n' && !self.is_at_end() {
+                        self.advance();
+                    }
+                    Ok(())
                 } else {
-                    return Ok(self.add_token(TokenType::Slash));
-                }
+                    Ok(self.add_token(TokenType::Slash))
+                };
             },
 
             // '"' begins a string literal
@@ -236,8 +239,8 @@ impl Scanner {
             self.advance();
         }
 
-        // If we reach the end of the file before finding the closing ", the literal is
-        // unterminated.
+        // If we reach the end of the file before finding the closing ",
+        // the literal is unterminated.
         if self.is_at_end() {
             self.line -= lines;
             return Err(UnexpectedCharacterError::UnterminatedStringLiteral);
