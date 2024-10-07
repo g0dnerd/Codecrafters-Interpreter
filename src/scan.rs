@@ -73,7 +73,6 @@ impl Scanner {
             '-' => Ok(self.add_token(TokenType::Minus)),
             '+' => Ok(self.add_token(TokenType::Plus)),
             ';' => Ok(self.add_token(TokenType::Semicolon)),
-            '/' => Ok(self.add_token(TokenType::Slash)),
             '*' => Ok(self.add_token(TokenType::Star)),
             '!' => {
                 let t = if self.match_next('=') { TokenType::BangEqual } else { TokenType::Bang };
@@ -91,6 +90,14 @@ impl Scanner {
                 let t = if self.match_next('=') { TokenType::GreaterEqual } else { TokenType::Greater };
                 return Ok(self.add_token(t));
             },
+            '/' => {
+                if self.match_next('/') {
+                    while self.peek() != '\n' && !self.is_at_end() { self.advance(); }
+                    return Ok(())
+                } else {
+                    return Ok(self.add_token(TokenType::Slash));
+                }
+            }
             ' ' | '\r' | '\n' | '\t' => Ok(()),
             _ => {
                 self.has_error = true;
@@ -110,6 +117,15 @@ impl Scanner {
 
         self.current += 1;
         true
+    }
+
+    fn peek(&self) -> char {
+        if self.is_at_end() { return '\0'; }
+        if let Some(c) = self.source.chars().nth(self.current) {
+            return c;
+        } else {
+            return '\0';
+        }
     }
 
     fn add_token(&mut self, token_type: TokenType) {
