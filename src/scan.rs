@@ -44,7 +44,7 @@ impl Scanner {
             self.start = self.current;
             match self.scan_token() {
                 Ok(_) => (),
-                Err(e) => eprintln!("[line {}] Error: {e:?}: ", e)
+                Err(e) => eprintln!("[line {}] Error: {e}", self.line)
             }
         }
 
@@ -63,7 +63,6 @@ impl Scanner {
 
     fn scan_token(&mut self) -> Result<()> {
         let c = self.advance().expect("Expected character but found none");
-        eprintln!("Parsing character {}", c);
         match c {
             '(' => Ok(self.add_token(TokenType::LeftParen)),
             ')' => Ok(self.add_token(TokenType::RightParen)),
@@ -92,7 +91,6 @@ impl Scanner {
     fn add_token(&mut self, token_type: TokenType) {
         let text = &self.source[self.start..self.current];
         let token = Token::new(token_type, String::from_str(text).expect("to be able to parse input to String"), None, self.line);
-        eprintln!("{:?}", token);
         self.tokens.push(token);
     }
 
