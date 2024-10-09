@@ -1,7 +1,4 @@
-use crate::token::{
-    Token,
-    LiteralValue
-};
+use crate::token::{LiteralValue, Token};
 
 pub fn parenthesize(name: &str, expressions: Vec<&Box<dyn Expression>>) -> String {
     let mut parsed = String::new();
@@ -23,44 +20,34 @@ pub trait Expression {
 }
 
 pub struct Binary {
-	left: Box<dyn Expression>,
-	operator: Token,
-	right: Box<dyn Expression>,
+    left: Box<dyn Expression>,
+    operator: Token,
+    right: Box<dyn Expression>,
 }
 
 impl Expression for Binary {
     fn accept(&self) -> String {
-        parenthesize(
-            &self.operator.lexeme,
-            vec![&self.left, &self.right],
-        )
+        parenthesize(&self.operator.lexeme, vec![&self.left, &self.right])
     }
 }
 
 impl Binary {
-    pub fn new(
-        left: Box<dyn Expression>,
-        operator: Token,
-        right: Box<dyn Expression>,
-    ) -> Self {
+    pub fn new(left: Box<dyn Expression>, operator: Token, right: Box<dyn Expression>) -> Self {
         Self {
             left,
             operator,
-            right
+            right,
         }
     }
 }
 
 pub struct Grouping {
-	expression: Box<dyn Expression>,
+    expression: Box<dyn Expression>,
 }
 
 impl Expression for Grouping {
     fn accept(&self) -> String {
-        parenthesize(
-            "group",
-            vec![&self.expression],
-        )
+        parenthesize("group", vec![&self.expression])
     }
 }
 
@@ -71,7 +58,7 @@ impl Grouping {
 }
 
 pub struct Literal {
-	value: Option<Box<dyn LiteralValue>>,
+    value: Option<Box<dyn LiteralValue>>,
 }
 
 impl Expression for Literal {
@@ -91,8 +78,8 @@ impl Literal {
 }
 
 pub struct Unary {
-	operator: Token,
-	right: Box<dyn Expression>,
+    operator: Token,
+    right: Box<dyn Expression>,
 }
 
 impl Expression for Unary {
@@ -103,9 +90,6 @@ impl Expression for Unary {
 
 impl Unary {
     pub fn new(operator: Token, right: Box<dyn Expression>) -> Self {
-        Self {
-            operator,
-            right
-        }
+        Self { operator, right }
     }
 }

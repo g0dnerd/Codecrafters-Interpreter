@@ -2,10 +2,10 @@ use std::env;
 use std::fs;
 use std::process::ExitCode;
 
+use codecrafters_interpreter::ast::print_expr;
 use codecrafters_interpreter::expression::Expression;
 use codecrafters_interpreter::parse::Parser;
 use codecrafters_interpreter::scan::Scanner;
-use codecrafters_interpreter::ast::print_expr;
 use codecrafters_interpreter::token::Token;
 
 fn main() -> ExitCode {
@@ -30,20 +30,18 @@ fn main() -> ExitCode {
                     return ExitCode::from(65);
                 }
             }
-        },
+        }
         "parse" => {
             let file_contents = read_file_contents(filename);
             match tokenize(file_contents) {
-                Ok(scanner) => {
-                    match parse(scanner.tokens) {
-                        Ok(expr) => print_expr(expr),
-                        Err(_) => {
-                            eprintln!("Damn.");
-                            return ExitCode::from(65);
-                        }
+                Ok(scanner) => match parse(scanner.tokens) {
+                    Ok(expr) => print_expr(expr),
+                    Err(_) => {
+                        eprintln!("Damn.");
+                        return ExitCode::from(65);
                     }
                 },
-                Err(_) => return ExitCode::from(65)
+                Err(_) => return ExitCode::from(65),
             }
         }
         _ => {
@@ -55,19 +53,17 @@ fn main() -> ExitCode {
 }
 
 fn read_file_contents(filename: &String) -> String {
-    return fs::read_to_string(filename)
-        .unwrap_or_else(|_| {
-            eprintln!("Failed to read file {}", filename);
-            String::new()
-        }
-    );
+    return fs::read_to_string(filename).unwrap_or_else(|_| {
+        eprintln!("Failed to read file {}", filename);
+        String::new()
+    });
 }
 
 fn tokenize(file_contents: String) -> Result<Scanner, Scanner> {
     let mut scanner = Scanner::new(file_contents);
     scanner.scan_tokens();
     if scanner.has_error {
-        return Err(scanner)
+        return Err(scanner);
     }
     Ok(scanner)
 }
@@ -76,6 +72,6 @@ fn parse(tokens: Vec<Token>) -> Result<Box<dyn Expression>, ()> {
     let mut parser = Parser::new(tokens);
     match parser.parse() {
         Ok(expr) => return Ok(expr),
-        Err(_) => return Err(())
+        Err(_) => return Err(()),
     }
 }

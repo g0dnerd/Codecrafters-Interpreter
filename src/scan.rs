@@ -1,18 +1,6 @@
-use std::{
-    fmt,
-    str::FromStr,
-};
-use crate::{
-    report,
-    TokenType,
-    KEYWORDS
-};
-use crate::token::{
-    LiteralValue,
-    Token,
-    NumberLiteral,
-    StringLiteral,
-};
+use crate::token::{LiteralValue, NumberLiteral, StringLiteral, Token};
+use crate::{report, TokenType, KEYWORDS};
+use std::{fmt, str::FromStr};
 
 type Result<T> = std::result::Result<T, UnexpectedCharacterError>;
 
@@ -27,7 +15,7 @@ impl fmt::Display for UnexpectedCharacterError {
         match self {
             UnexpectedCharacterError::UnknownCharacter(c) => {
                 write!(f, "Unexpected character: {}", &c)
-            },
+            }
             UnexpectedCharacterError::UnterminatedStringLiteral => {
                 write!(f, "Unterminated string.")
             }
@@ -68,12 +56,7 @@ impl Scanner {
             }
         }
 
-        let eof_token = Token::new(
-            TokenType::Eof,
-            String::new(),
-            None,
-            self.line
-        );
+        let eof_token = Token::new(TokenType::Eof, String::new(), None, self.line);
         self.tokens.push(eof_token);
     }
 
@@ -83,8 +66,7 @@ impl Scanner {
     }
 
     fn scan_token(&mut self) -> Result<()> {
-        let c = self.advance()
-            .expect("Expected character but found none");
+        let c = self.advance().expect("Expected character but found none");
         match c {
             // Single-character tokens
             '(' => Ok(self.add_token(TokenType::LeftParen)),
@@ -100,29 +82,37 @@ impl Scanner {
 
             // Operators can potentially have multiple characters
             '!' => {
-                let t = if self.match_next('=')
-                { TokenType::BangEqual } else
-                { TokenType::Bang };
+                let t = if self.match_next('=') {
+                    TokenType::BangEqual
+                } else {
+                    TokenType::Bang
+                };
                 return Ok(self.add_token(t));
-            },
+            }
             '=' => {
-                let t = if self.match_next('=')
-                { TokenType::EqualEqual } else
-                { TokenType::Equal };
+                let t = if self.match_next('=') {
+                    TokenType::EqualEqual
+                } else {
+                    TokenType::Equal
+                };
                 return Ok(self.add_token(t));
-            },
+            }
             '<' => {
-                let t = if self.match_next('=')
-                { TokenType::LessEqual } else
-                { TokenType::Less };
+                let t = if self.match_next('=') {
+                    TokenType::LessEqual
+                } else {
+                    TokenType::Less
+                };
                 return Ok(self.add_token(t));
-            },
+            }
             '>' => {
-                let t = if self.match_next('=')
-                { TokenType::GreaterEqual } else
-                { TokenType::Greater };
+                let t = if self.match_next('=') {
+                    TokenType::GreaterEqual
+                } else {
+                    TokenType::Greater
+                };
                 return Ok(self.add_token(t));
-            },
+            }
             '/' => {
                 return if self.match_next('/') {
                     while self.peek() != '\n' && !self.is_at_end() {
@@ -132,22 +122,18 @@ impl Scanner {
                 } else {
                     Ok(self.add_token(TokenType::Slash))
                 };
-            },
+            }
 
             // '"' begins a string literal
-            '"' => {
-                match self.string() {
-                    Ok(_) => Ok(()),
-                    Err(e) => Err(e)
-                }
+            '"' => match self.string() {
+                Ok(_) => Ok(()),
+                Err(e) => Err(e),
             },
 
             // any digit begins a number literal
-            '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' => {
-                match self.number() {
-                    Ok(_) => Ok(()),
-                    Err(e) => Err(e)
-                }
+            '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' => match self.number() {
+                Ok(_) => Ok(()),
+                Err(e) => Err(e),
             },
 
             // Newlines
@@ -161,10 +147,10 @@ impl Scanner {
                 if c.is_alphabetic() || c == '_' {
                     return match self.identifier() {
                         Ok(_) => Ok(()),
-                        Err(e) => Err(e)
+                        Err(e) => Err(e),
                     };
                 }
-                // Everything else is an unkown character, raise an error 
+                // Everything else is an unkown character, raise an error
                 Err(UnexpectedCharacterError::UnknownCharacter(c))
             }
         }
@@ -179,9 +165,13 @@ impl Scanner {
 
     /// Returns true if the next character is equal to `expected`
     fn match_next(&mut self, expected: char) -> bool {
-        if self.is_at_end() { return false; }
+        if self.is_at_end() {
+            return false;
+        }
         let next_char = self.peek();
-        if next_char != expected { return false; }
+        if next_char != expected {
+            return false;
+        }
 
         self.current += 1;
         true
@@ -189,7 +179,9 @@ impl Scanner {
 
     /// Returns the character at the upcoming position, if there is one
     fn peek(&self) -> char {
-        if self.is_at_end() { return '\0'; }
+        if self.is_at_end() {
+            return '\0';
+        }
         if let Some(c) = self.source.chars().nth(self.current) {
             return c;
         } else {
@@ -199,7 +191,9 @@ impl Scanner {
 
     /// Returns the character two positions ahead, if there is one
     fn peek_next(&self) -> char {
-        if self.is_at_end() { return '\0'; }
+        if self.is_at_end() {
+            return '\0';
+        }
         if let Some(c) = self.source.chars().nth(self.current + 1) {
             return c;
         } else {
@@ -211,17 +205,12 @@ impl Scanner {
         self.add_literal_token(token_type, None);
     }
 
-    fn add_literal_token(
-        &mut self,
-        token_type: TokenType,
-        literal: Option<Box<dyn LiteralValue>>
-    ) {
+    fn add_literal_token(&mut self, token_type: TokenType, literal: Option<Box<dyn LiteralValue>>) {
         // Parse lexeme from source
         let text = String::from_str(&self.source[self.start..self.current])
             .expect("to be able to parse str to String");
-        self.tokens.push(
-            Token::new(token_type, text, literal, self.line)
-        );
+        self.tokens
+            .push(Token::new(token_type, text, literal, self.line));
     }
 
     fn string(&mut self) -> Result<()> {
@@ -231,7 +220,8 @@ impl Scanner {
         while self.peek() != '"' && !self.is_at_end() {
             if self.peek() == '\n' {
                 lines += 1;
-                self.line += lines; }
+                self.line += lines;
+            }
             self.advance();
         }
 
@@ -248,7 +238,7 @@ impl Scanner {
         // Parse the string literals value from source
         let literal = StringLiteral {
             value: String::from_str(&self.source[self.start + 1..self.current - 1])
-                .expect("to be able to parse str to String")
+                .expect("to be able to parse str to String"),
         };
 
         self.add_literal_token(TokenType::String, Some(Box::new(literal)));
@@ -257,31 +247,37 @@ impl Scanner {
 
     fn number(&mut self) -> Result<()> {
         // Keep parsing while the next character is numeric
-        while self.peek().is_digit(10) { self.advance(); }
+        while self.peek().is_digit(10) {
+            self.advance();
+        }
 
         // If the next character is a decimal point AND the character after that is numeric,
         // keep parsing
         if self.peek() == '.' && self.peek_next().is_digit(10) {
             self.advance();
-            while self.peek().is_numeric() { self.advance(); }
+            while self.peek().is_numeric() {
+                self.advance();
+            }
         }
 
         // TODO: this feels dirty and I don't like it
         let value_str = &self.source[self.start..self.current];
         let literal = NumberLiteral {
-            value: value_str.parse().expect("to be able to parse number literal value to number")
+            value: value_str
+                .parse()
+                .expect("to be able to parse number literal value to number"),
         };
 
-        self.add_literal_token(
-            TokenType::Number, Some(Box::new(literal))
-        );
+        self.add_literal_token(TokenType::Number, Some(Box::new(literal)));
         Ok(())
     }
 
     // TODO: does this need a result? When would this error?
     fn identifier(&mut self) -> Result<()> {
         // Keep parsing while the next character is alphanumeric or an underscore _
-        while self.peek().is_alphanumeric() || self.peek() == '_' { self.advance(); }
+        while self.peek().is_alphanumeric() || self.peek() == '_' {
+            self.advance();
+        }
         let value_str = &self.source[self.start..self.current];
         if let Some(identifier_type) = KEYWORDS.lock().unwrap().get(value_str) {
             self.add_token(identifier_type.clone());
@@ -290,9 +286,7 @@ impl Scanner {
             self.add_token(TokenType::Identifier);
             return Ok(());
         }
-
     }
-
 }
 
 impl fmt::Display for Scanner {

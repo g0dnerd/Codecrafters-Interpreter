@@ -3,11 +3,11 @@ use std::{collections::HashMap, sync::Mutex};
 use once_cell::sync::Lazy;
 use strum_macros::Display;
 
+pub mod ast;
+pub mod expression;
+pub mod parse;
 pub mod scan;
 pub mod token;
-pub mod parse;
-pub mod expression;
-pub mod ast;
 
 pub fn report(line: usize, location: &str, message: &str) {
     eprintln!("[line {}] Error{}: {}", line, location, message);
@@ -17,27 +17,27 @@ pub fn report(line: usize, location: &str, message: &str) {
 #[strum(serialize_all = "SCREAMING_SNAKE_CASE")]
 pub enum TokenType {
     // Single-character tokens
-    LeftParen, // (
+    LeftParen,  // (
     RightParen, // )
-    LeftBrace, // {
+    LeftBrace,  // {
     RightBrace, // }
-    Comma, // ,
-    Dot, // .
-    Minus, // -
-    Plus, // +
-    Semicolon, // ;
-    Slash, // /
-    Star, // *
+    Comma,      // ,
+    Dot,        // .
+    Minus,      // -
+    Plus,       // +
+    Semicolon,  // ;
+    Slash,      // /
+    Star,       // *
 
     // One or two-character tokens
-    Bang, // !
-    BangEqual, // !=
-    Equal, // =
-    EqualEqual, // ==
-    Greater, // >
+    Bang,         // !
+    BangEqual,    // !=
+    Equal,        // =
+    EqualEqual,   // ==
+    Greater,      // >
     GreaterEqual, // >=
-    Less, // <
-    LessEqual, // <=
+    Less,         // <
+    LessEqual,    // <=
 
     // Literals
     Identifier,

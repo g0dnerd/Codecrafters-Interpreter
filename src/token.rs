@@ -1,5 +1,5 @@
-use std::fmt;
 use crate::TokenType;
+use std::fmt;
 
 pub trait LiteralValue: LiteralValueClone {
     fn print_value(&self) -> String;
@@ -37,13 +37,20 @@ impl fmt::Display for Token {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let literal_out: String = if let Some(l) = &self.literal {
             l.print_value()
-        } else { String::from("null") };
+        } else {
+            String::from("null")
+        };
         write!(f, "{} {} {}", self.token_type, self.lexeme, literal_out)
     }
 }
 
 impl Token {
-    pub fn new(token_type: TokenType, lexeme: String, literal: Option<Box<dyn LiteralValue>>, line: usize) -> Self {
+    pub fn new(
+        token_type: TokenType,
+        lexeme: String,
+        literal: Option<Box<dyn LiteralValue>>,
+        line: usize,
+    ) -> Self {
         Self {
             token_type,
             lexeme,
@@ -88,7 +95,9 @@ pub struct BooleanLiteral {
 
 impl LiteralValue for BooleanLiteral {
     fn print_value(&self) -> String {
-        if !self.value { return String::from("false"); }
+        if !self.value {
+            return String::from("false");
+        }
         String::from("true")
     }
 }

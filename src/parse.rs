@@ -1,17 +1,7 @@
-use std::fmt;
+use crate::expression::{Binary, Expression, Grouping, Literal, Unary};
+use crate::token::{BooleanLiteral, NilLiteral, Token};
 use crate::TokenType;
-use crate::token::{
-    BooleanLiteral,
-    NilLiteral,
-    Token
-};
-use crate::expression::{
-    Binary,
-    Expression,
-    Grouping,
-    Literal,
-    Unary
-};
+use std::fmt;
 
 type Result<T> = std::result::Result<T, ParserError>;
 
@@ -24,13 +14,11 @@ pub enum ParserError {
 impl fmt::Display for ParserError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Self::UndisclosedDelimiter(t) | Self::ExpectExpression(t) => {
-                match t.token_type {
-                    TokenType::Eof => write!(f, "at end"),
-                    _ => write!(f, "at ' {}", t.lexeme)
-                }
+            Self::UndisclosedDelimiter(t) | Self::ExpectExpression(t) => match t.token_type {
+                TokenType::Eof => write!(f, "at end"),
+                _ => write!(f, "at ' {}", t.lexeme),
             },
-            _ => write!(f, "PRIMARY CRASH")
+            _ => write!(f, "PRIMARY CRASH"),
         }
     }
 }
@@ -43,10 +31,7 @@ pub struct Parser {
 
 impl Parser {
     pub fn new(tokens: Vec<Token>) -> Self {
-        Self {
-            tokens,
-            current: 0
-        }
+        Self { tokens, current: 0 }
     }
 
     pub fn parse(&mut self) -> Result<Box<dyn Expression>> {
@@ -72,7 +57,12 @@ impl Parser {
     fn comparison(&mut self) -> Result<Box<dyn Expression>> {
         let mut expr = self.term()?;
 
-        while self.match_tokens(vec![TokenType::Greater, TokenType::GreaterEqual, TokenType::Less, TokenType::LessEqual]) {
+        while self.match_tokens(vec![
+            TokenType::Greater,
+            TokenType::GreaterEqual,
+            TokenType::Less,
+            TokenType::LessEqual,
+        ]) {
             let operator = self.previous();
             let right = self.term()?;
             expr = Box::new(Binary::new(expr, operator, right));
@@ -113,10 +103,14 @@ impl Parser {
 
     fn primary(&mut self) -> Result<Box<dyn Expression>> {
         if self.match_tokens(vec![TokenType::False]) {
-            return Ok(Box::new(Literal::new(Some(Box::new(BooleanLiteral{ value: false })))));
+            return Ok(Box::new(Literal::new(Some(Box::new(BooleanLiteral {
+                value: false,
+            })))));
         }
         if self.match_tokens(vec![TokenType::True]) {
-            return Ok(Box::new(Literal::new(Some(Box::new(BooleanLiteral{ value: true })))));
+            return Ok(Box::new(Literal::new(Some(Box::new(BooleanLiteral {
+                value: true,
+            })))));
         }
         if self.match_tokens(vec![TokenType::Nil]) {
             return Ok(Box::new(Literal::new(Some(Box::new(NilLiteral)))));
@@ -128,8 +122,8 @@ impl Parser {
             let expr = self.expression()?;
             return match self.consume(TokenType::RightParen) {
                 Ok(_) => Ok(Box::new(Grouping::new(expr))),
-                Err(e) => Err(e)
-            }
+                Err(e) => Err(e),
+            };
         }
         Err(ParserError::UnexpectedToken())
     }
@@ -153,7 +147,9 @@ impl Parser {
     }
 
     fn check(&self, token_type: TokenType) -> bool {
-        if self.is_at_end() { return false; }
+        if self.is_at_end() {
+            return false;
+        }
         self.peek().token_type == token_type
     }
 
@@ -176,6 +172,7 @@ impl Parser {
         self.tokens[self.current - 1].clone()
     }
 
+    #[allow(dead_code)] // TODO: remove once `synchronize` gets used
     fn synchronize(&mut self) {
         self.advance();
 
@@ -185,15 +182,15 @@ impl Parser {
             }
 
             match self.peek().token_type {
-                TokenType::Class |
-                TokenType::Fun |
-                TokenType::Var |
-                TokenType::For |
-                TokenType::If |
-                TokenType::While |
-                TokenType::Print |
-                TokenType::Return => return,
-                _ => ()
+                TokenType::Class
+                | TokenType::Fun
+                | TokenType::Var
+                | TokenType::For
+                | TokenType::If
+                | TokenType::While
+                | TokenType::Print
+                | TokenType::Return => return,
+                _ => (),
             }
 
             self.advance();
