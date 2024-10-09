@@ -2,7 +2,11 @@ use std::{
     fmt,
     str::FromStr,
 };
-use crate::{TokenType, KEYWORDS};
+use crate::{
+    report,
+    TokenType,
+    KEYWORDS
+};
 use crate::token::{
     LiteralValue,
     Token,
@@ -33,7 +37,7 @@ impl fmt::Display for UnexpectedCharacterError {
 
 pub struct Scanner {
     source: String,
-    tokens: Vec<Token>,
+    pub tokens: Vec<Token>,
     start: usize,
     current: usize,
     line: usize,
@@ -59,7 +63,7 @@ impl Scanner {
                 Ok(_) => (),
                 Err(e) => {
                     self.has_error = true;
-                    eprintln!("[line {}] Error: {e}", self.line)
+                    report(self.line, "", &e.to_string());
                 }
             }
         }
@@ -73,7 +77,7 @@ impl Scanner {
         self.tokens.push(eof_token);
     }
 
-    // Returns true if the current character is the last one in self.source
+    /// Returns true if the current character is the last one in self.source
     fn is_at_end(&self) -> bool {
         self.current >= self.source.len()
     }
@@ -96,35 +100,27 @@ impl Scanner {
 
             // Operators can potentially have multiple characters
             '!' => {
-                let t = if self.match_next('=') {
-                    TokenType::BangEqual
-                } else {
-                    TokenType::Bang
-                };
+                let t = if self.match_next('=')
+                { TokenType::BangEqual } else
+                { TokenType::Bang };
                 return Ok(self.add_token(t));
             },
             '=' => {
-                let t = if self.match_next('=') {
-                    TokenType::EqualEqual
-                } else {
-                    TokenType::Equal
-                };
+                let t = if self.match_next('=')
+                { TokenType::EqualEqual } else
+                { TokenType::Equal };
                 return Ok(self.add_token(t));
             },
             '<' => {
-                let t = if self.match_next('=') {
-                    TokenType::LessEqual
-                } else {
-                    TokenType::Less
-                };
+                let t = if self.match_next('=')
+                { TokenType::LessEqual } else
+                { TokenType::Less };
                 return Ok(self.add_token(t));
             },
             '>' => {
-                let t = if self.match_next('=') {
-                    TokenType::GreaterEqual
-                } else {
-                    TokenType::Greater
-                };
+                let t = if self.match_next('=')
+                { TokenType::GreaterEqual } else
+                { TokenType::Greater };
                 return Ok(self.add_token(t));
             },
             '/' => {
@@ -255,9 +251,7 @@ impl Scanner {
                 .expect("to be able to parse str to String")
         };
 
-        self.add_literal_token(
-            TokenType::String, Some(Box::new(literal))
-        );
+        self.add_literal_token(TokenType::String, Some(Box::new(literal)));
         Ok(())
     }
 

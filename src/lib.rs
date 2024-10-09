@@ -5,8 +5,15 @@ use strum_macros::Display;
 
 pub mod scan;
 pub mod token;
+pub mod parse;
+pub mod expression;
+pub mod ast;
 
-#[derive(Debug, Display, Copy, Clone)]
+pub fn report(line: usize, location: &str, message: &str) {
+    eprintln!("[line {}] Error{}: {}", line, location, message);
+}
+
+#[derive(Debug, Display, Copy, Clone, Eq, PartialEq)]
 #[strum(serialize_all = "SCREAMING_SNAKE_CASE")]
 pub enum TokenType {
     // Single-character tokens

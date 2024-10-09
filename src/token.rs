@@ -1,15 +1,35 @@
 use std::fmt;
 use crate::TokenType;
 
-pub trait LiteralValue {
+pub trait LiteralValue: LiteralValueClone {
     fn print_value(&self) -> String;
 }
 
+pub trait LiteralValueClone {
+    fn clone_box(&self) -> Box<dyn LiteralValue>;
+}
+
+impl<T> LiteralValueClone for T
+where
+    T: 'static + LiteralValue + Clone,
+{
+    fn clone_box(&self) -> Box<dyn LiteralValue> {
+        Box::new(self.clone())
+    }
+}
+
+impl Clone for Box<dyn LiteralValue> {
+    fn clone(&self) -> Box<dyn LiteralValue> {
+        self.clone_box()
+    }
+}
+
 #[allow(dead_code)] // TODO: remove once `line` gets used
+#[derive(Clone)]
 pub struct Token {
-    token_type: TokenType,
-    lexeme: String,
-    literal: Option<Box<dyn LiteralValue>>,
+    pub token_type: TokenType,
+    pub lexeme: String,
+    pub literal: Option<Box<dyn LiteralValue>>,
     line: usize,
 }
 
@@ -33,6 +53,7 @@ impl Token {
     }
 }
 
+#[derive(Clone)]
 pub struct NumberLiteral {
     pub value: f32,
 }
@@ -49,6 +70,7 @@ impl LiteralValue for NumberLiteral {
     }
 }
 
+#[derive(Clone)]
 pub struct StringLiteral {
     pub value: String,
 }
@@ -56,5 +78,26 @@ pub struct StringLiteral {
 impl LiteralValue for StringLiteral {
     fn print_value(&self) -> String {
         self.value.clone()
+    }
+}
+
+#[derive(Clone)]
+pub struct BooleanLiteral {
+    pub value: bool,
+}
+
+impl LiteralValue for BooleanLiteral {
+    fn print_value(&self) -> String {
+        if !self.value { return String::from("false"); }
+        String::from("true")
+    }
+}
+
+#[derive(Clone)]
+pub struct NilLiteral;
+
+impl LiteralValue for NilLiteral {
+    fn print_value(&self) -> String {
+        String::from("nil")
     }
 }
