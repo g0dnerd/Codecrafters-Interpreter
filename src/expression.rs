@@ -119,7 +119,8 @@ impl Expression for Binary {
                 }
                 panic!("Trying to compare to non-numeric values");
             },
-            TokenType::BangEqual => return Box::new(BooleanLiteral{ value: is_equal(left, right)}),
+            TokenType::BangEqual => return Box::new(BooleanLiteral{ value: !is_equal(left, right)}),
+            TokenType::EqualEqual => return Box::new(BooleanLiteral{ value: is_equal(left, right)}),
             _ => panic!("Invalid operation in binary expression")
         }
     }
@@ -227,6 +228,5 @@ fn is_truthy(expr: Box<dyn LiteralValue>) -> bool {
 fn is_equal(left: Box<dyn LiteralValue>, right: Box<dyn LiteralValue>) -> bool {
     let left_val = left.print_value();
     let right_val = right.print_value();
-
     &left_val == &right_val
 }
