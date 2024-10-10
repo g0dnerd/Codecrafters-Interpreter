@@ -103,20 +103,23 @@ impl Parser {
 
     fn primary(&mut self) -> Result<Box<dyn Expression>> {
         if self.match_tokens(vec![TokenType::False]) {
-            return Ok(Box::new(Literal::new(Some(Box::new(BooleanLiteral {
+            return Ok(Box::new(Literal::new(Box::new(BooleanLiteral {
                 value: false,
-            })))));
+            }))));
         }
         if self.match_tokens(vec![TokenType::True]) {
-            return Ok(Box::new(Literal::new(Some(Box::new(BooleanLiteral {
+            return Ok(Box::new(Literal::new(Box::new(BooleanLiteral {
                 value: true,
-            })))));
+            }))));
         }
         if self.match_tokens(vec![TokenType::Nil]) {
-            return Ok(Box::new(Literal::new(Some(Box::new(NilLiteral)))));
+            return Ok(Box::new(Literal::new(Box::new(NilLiteral))));
         }
         if self.match_tokens(vec![TokenType::Number, TokenType::String]) {
-            return Ok(Box::new(Literal::new(self.previous().literal)));
+            if let Some(l) = self.previous().literal {
+                return Ok(Box::new(Literal::new(l)));
+            }
+            return Err(ParserError::UnexpectedToken());
         }
         if self.match_tokens(vec![TokenType::LeftParen]) {
             let expr = self.expression()?;

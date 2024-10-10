@@ -3,7 +3,7 @@ use std::fmt;
 
 pub trait LiteralValue: LiteralValueClone {
     fn print_value(&self) -> String;
-    fn get_name(&self) -> &'static str;
+    fn get_type(&self) -> LiteralType;
 }
 
 pub trait LiteralValueClone {
@@ -25,20 +25,12 @@ impl Clone for Box<dyn LiteralValue> {
     }
 }
 
-impl fmt::Debug for dyn LiteralValue {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let name = self.get_name();
-        write!(f, "{}", name)
-    }
-}
-
-#[allow(dead_code)] // TODO: remove once `line` gets used
 #[derive(Clone)]
 pub struct Token {
     pub token_type: TokenType,
     pub lexeme: String,
     pub literal: Option<Box<dyn LiteralValue>>,
-    line: usize,
+    pub line: usize,
 }
 
 impl fmt::Display for Token {
@@ -68,6 +60,14 @@ impl Token {
     }
 }
 
+#[derive(Eq, PartialEq)]
+pub enum LiteralType {
+    NumberLiteral,
+    StringLiteral,
+    BooleanLiteral,
+    NilLiteral,
+}
+
 #[derive(Clone)]
 pub struct NumberLiteral {
     pub value: f32,
@@ -84,8 +84,8 @@ impl LiteralValue for NumberLiteral {
         }
     }
 
-    fn get_name(&self) -> &'static str {
-        std::any::type_name::<Self>()
+    fn get_type(&self) -> LiteralType {
+        LiteralType::NumberLiteral
     }
 }
 
@@ -99,8 +99,8 @@ impl LiteralValue for StringLiteral {
         self.value.clone()
     }
 
-    fn get_name(&self) -> &'static str {
-        std::any::type_name::<Self>()
+    fn get_type(&self) -> LiteralType {
+        LiteralType::StringLiteral
     }
 }
 
@@ -117,8 +117,8 @@ impl LiteralValue for BooleanLiteral {
         String::from("true")
     }
 
-    fn get_name(&self) -> &'static str {
-        std::any::type_name::<Self>()
+    fn get_type(&self) -> LiteralType {
+        LiteralType::BooleanLiteral
     }
 }
 
@@ -130,7 +130,7 @@ impl LiteralValue for NilLiteral {
         String::from("nil")
     }
 
-    fn get_name(&self) -> &'static str {
-        std::any::type_name::<Self>()
+    fn get_type(&self) -> LiteralType {
+        LiteralType::NilLiteral
     }
 }

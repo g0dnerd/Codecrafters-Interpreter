@@ -52,7 +52,10 @@ fn main() -> ExitCode {
             match tokenize(file_contents) {
                 Ok(scanner) => match parse(scanner.tokens) {
                     Ok(expr) => {
-                        interpret(expr);
+                        match interpret(expr) {
+                            Ok(_) => return ExitCode::SUCCESS,
+                            Err(_) => return ExitCode::from(70)
+                        }
                     },
                     Err(_) => {
                         eprintln!("Damn.");
