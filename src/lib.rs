@@ -8,6 +8,7 @@ pub mod expression;
 pub mod parse;
 pub mod scan;
 pub mod token;
+pub mod interpret;
 
 pub fn report(line: usize, location: &str, message: &str) {
     eprintln!("[line {}] Error{}: {}", line, location, message);

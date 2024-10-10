@@ -4,6 +4,7 @@ use std::process::ExitCode;
 
 use codecrafters_interpreter::ast::print_expr;
 use codecrafters_interpreter::expression::Expression;
+use codecrafters_interpreter::interpret::interpret;
 use codecrafters_interpreter::parse::Parser;
 use codecrafters_interpreter::scan::Scanner;
 use codecrafters_interpreter::token::Token;
@@ -35,7 +36,9 @@ fn main() -> ExitCode {
             let file_contents = read_file_contents(filename);
             match tokenize(file_contents) {
                 Ok(scanner) => match parse(scanner.tokens) {
-                    Ok(expr) => print_expr(expr),
+                    Ok(expr) => {
+                        print_expr(&expr);
+                    },
                     Err(_) => {
                         eprintln!("Damn.");
                         return ExitCode::from(65);
@@ -43,7 +46,22 @@ fn main() -> ExitCode {
                 },
                 Err(_) => return ExitCode::from(65),
             }
-        }
+        },
+        "evaluate" => {
+            let file_contents = read_file_contents(filename);
+            match tokenize(file_contents) {
+                Ok(scanner) => match parse(scanner.tokens) {
+                    Ok(expr) => {
+                        interpret(expr);
+                    },
+                    Err(_) => {
+                        eprintln!("Damn.");
+                        return ExitCode::from(65);
+                    }
+                },
+                Err(_) => return ExitCode::from(65),
+            }
+        },
         _ => {
             eprintln!("Unknown command: {}", command);
             return ExitCode::FAILURE;

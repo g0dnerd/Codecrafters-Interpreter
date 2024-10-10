@@ -72,6 +72,6 @@ impl AstGenerator {
     }
 }
 
-pub fn print_expr(expr: Box<dyn Expression>) {
+pub fn print_expr(expr: &Box<dyn Expression>) {
     println!("{}", expr.accept());
 }
