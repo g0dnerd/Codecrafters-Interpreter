@@ -1,6 +1,7 @@
 use crate::expression::{Binary, Expression, Grouping, Literal, Unary};
 use crate::token::{BooleanLiteral, NilLiteral, Token};
 use crate::TokenType;
+use crate::statement::{ExpressionStatement, PrintStatement, Statement};
 use std::fmt;
 
 type Result<T> = std::result::Result<T, ParserError>;
@@ -8,22 +9,33 @@ type Result<T> = std::result::Result<T, ParserError>;
 pub enum ParserError {
     UndisclosedDelimiter(Token),
     ExpectExpression(Token),
-    UnexpectedToken(),
+    UnexpectedToken(Token),
+    NoSemicolon(Token),
 }
 
 impl fmt::Display for ParserError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Self::UndisclosedDelimiter(t) | Self::ExpectExpression(t) => match t.token_type {
-                TokenType::Eof => write!(f, "at end"),
-                _ => write!(f, "at ' {}", t.lexeme),
+            Self::UndisclosedDelimiter(t) => match t.token_type {
+                TokenType::Eof => write!(f, "at end: Undisclosed delimiter"),
+                _ => write!(f, "at ' {}: Undisclosed delimiter", t.lexeme),
             },
-            _ => write!(f, "PRIMARY CRASH"),
+            Self::ExpectExpression(t) => match t.token_type {
+                TokenType::Eof => write!(f, "at end: Expected expression"),
+                _ => write!(f, "at ' {}: Expected expression", t.lexeme),
+            },
+            Self::UnexpectedToken(t) => match t.token_type {
+                TokenType::Eof => write!(f, "at end: Unexpected token"),
+                _ => write!(f, "at ' {}: Unexpected token", t.lexeme),
+            },
+            Self::NoSemicolon(t) => match t.token_type {
+                TokenType::Eof => write!(f, "at end: Missing semicolon"),
+                _ => write!(f, "Missing semicolon after {}", t.lexeme),
+            }
         }
     }
 }
 
-// TODO: do I want to integrate this with scan::Scanner?
 pub struct Parser {
     tokens: Vec<Token>,
     current: usize,
@@ -35,8 +47,39 @@ impl Parser {
     }
 
     pub fn parse(&mut self) -> Result<Box<dyn Expression>> {
-        // TODO: aaaaah
         Ok(self.expression()?)
+    }
+
+    pub fn parse_and_interpret(&mut self) -> Result<Vec<Box<dyn Statement>>> {
+        let mut statements = Vec::new();
+        while !self.is_at_end() {
+            match self.statement() {
+                Ok(s) => statements.push(s),
+                Err(e) => {
+                    eprintln!("Error: {}", e);
+                    return Err(e);
+                }
+            }
+        }
+        Ok(statements)
+    }
+
+    fn statement(&mut self) -> Result<Box<dyn Statement>> {
+        if self.match_tokens(vec![TokenType::Print]) {
+            return self.print_statement();
+        }
+        self.expression_statement()
+    }
+
+    fn print_statement(&mut self) -> Result<Box<dyn Statement>> {
+        let value = self.expression()?;
+        self.consume(TokenType::Semicolon)?;
+        Ok(Box::new(PrintStatement::new(value)))
+    }
+
+    fn expression_statement(&mut self) -> Result<Box<dyn Statement>> {        let expr = self.expression()?;
+        self.consume(TokenType::Semicolon)?;
+        Ok(Box::new(ExpressionStatement::new(expr)))
     }
 
     fn expression(&mut self) -> Result<Box<dyn Expression>> {
@@ -119,7 +162,7 @@ impl Parser {
             if let Some(l) = self.previous().literal {
                 return Ok(Box::new(Literal::new(l)));
             }
-            return Err(ParserError::UnexpectedToken());
+            return Err(ParserError::UnexpectedToken(self.peek()));
         }
         if self.match_tokens(vec![TokenType::LeftParen]) {
             let expr = self.expression()?;
@@ -128,13 +171,16 @@ impl Parser {
                 Err(e) => Err(e),
             };
         }
-        Err(ParserError::UnexpectedToken())
+        Err(ParserError::UnexpectedToken(self.peek()))
     }
 
     /// Looks for a closing delimiter and returns an Err if it doesn't find it
     fn consume(&mut self, token_type: TokenType) -> Result<Token> {
         if self.check(token_type) {
             return Ok(self.advance());
+        }
+        if token_type == TokenType::Semicolon {
+            return Err(ParserError::NoSemicolon(self.peek()));
         }
         Err(ParserError::UndisclosedDelimiter(self.peek()))
     }

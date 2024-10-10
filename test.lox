@@ -1,1 +1,4 @@
-(!!47)
+print "one";
+print true;
+print "a"
+print 2 + 1;

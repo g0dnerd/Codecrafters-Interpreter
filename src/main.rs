@@ -2,12 +2,15 @@ use std::env;
 use std::fs;
 use std::process::ExitCode;
 
-use codecrafters_interpreter::ast::print_expr;
 use codecrafters_interpreter::expression::Expression;
+use codecrafters_interpreter::ast::print_expr;
 use codecrafters_interpreter::interpret::interpret;
+use codecrafters_interpreter::interpret::interpret_single_expr;
 use codecrafters_interpreter::parse::Parser;
+use codecrafters_interpreter::parse::ParserError;
 use codecrafters_interpreter::scan::Scanner;
 use codecrafters_interpreter::token::Token;
+use codecrafters_interpreter::statement::Statement;
 
 fn main() -> ExitCode {
     let args: Vec<String> = env::args().collect();
@@ -51,16 +54,28 @@ fn main() -> ExitCode {
             let file_contents = read_file_contents(filename);
             match tokenize(file_contents) {
                 Ok(scanner) => match parse(scanner.tokens) {
-                    Ok(expr) => {
-                        match interpret(expr) {
+                    Ok(stmts) => {
+                        match interpret_single_expr(stmts) {
                             Ok(_) => return ExitCode::SUCCESS,
                             Err(_) => return ExitCode::from(70)
                         }
                     },
-                    Err(_) => {
-                        eprintln!("Damn.");
-                        return ExitCode::from(65);
-                    }
+                    Err(_) => return ExitCode::from(65)
+                },
+                Err(_) => return ExitCode::from(65),
+            }
+        },
+        "run" => {
+            let file_contents = read_file_contents(filename);
+            match tokenize(file_contents) {
+                Ok(scanner) => match parse_and_interpret(scanner.tokens) {
+                    Ok(stmts) => {
+                        match interpret(stmts) {
+                            Ok(_) => return ExitCode::SUCCESS,
+                            Err(_) => return ExitCode::from(70)
+                        }
+                    },
+                    Err(_) => return ExitCode::from(65)
                 },
                 Err(_) => return ExitCode::from(65),
             }
@@ -89,10 +104,18 @@ fn tokenize(file_contents: String) -> Result<Scanner, Scanner> {
     Ok(scanner)
 }
 
-fn parse(tokens: Vec<Token>) -> Result<Box<dyn Expression>, ()> {
+fn parse(tokens: Vec<Token>) -> Result<Box<dyn Expression>, ParserError> {
     let mut parser = Parser::new(tokens);
     match parser.parse() {
         Ok(expr) => return Ok(expr),
-        Err(_) => return Err(()),
+        Err(e) => return Err(e)
+    }
+}
+
+fn parse_and_interpret(tokens: Vec<Token>) -> Result<Vec<Box<dyn Statement>>, ParserError> {
+    let mut parser = Parser::new(tokens);
+    match parser.parse_and_interpret() {
+        Ok(stmts) => return Ok(stmts),
+        Err(e) => return Err(e)
     }
 }

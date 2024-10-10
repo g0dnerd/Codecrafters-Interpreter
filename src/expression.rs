@@ -1,7 +1,7 @@
 use std::fmt;
 
 use crate::{token::{BooleanLiteral, LiteralType, LiteralValue, NumberLiteral, StringLiteral, Token}, TokenType};
-
+use crate::interpret::{is_truthy, is_equal, parenthesize};
 type Result<T> = std::result::Result<T, RuntimeError>;
 
 pub struct RuntimeError{
@@ -14,7 +14,6 @@ impl fmt::Display for RuntimeError {
         write!(f, "{}\n[line {}]", self.message, self.token.line)
     }
 }
-
 
 pub trait Expression {
     fn accept(&self) -> String;
@@ -179,41 +178,5 @@ impl Unary {
     pub fn new(operator: Token, right: Box<dyn Expression>) -> Self {
         Self { operator, right }
     }
-}
-
-fn is_truthy(expr: Box<dyn LiteralValue>) -> bool {
-    match expr.get_type() {
-        LiteralType::NilLiteral => return false,
-        LiteralType::BooleanLiteral => {
-            let expr_val = expr.print_value();
-            match expr_val.as_ref() {
-                "false" => return false,
-                _ => return true
-            }
-        },
-        _ => return true
-    }
-}
-
-fn is_equal(left: Box<dyn LiteralValue>, right: Box<dyn LiteralValue>) -> bool {
-    let left_val = left.print_value();
-    let right_val = right.print_value();
-    &left_val == &right_val
-}
-
-pub fn parenthesize(name: &str, expressions: Vec<&Box<dyn Expression>>) -> String {
-
-    let mut parsed = String::new();
-
-    parsed.push('(');
-    parsed.push_str(name);
-
-    for expr in expressions {
-        parsed.push(' ');
-        parsed.push_str(&expr.accept());
-    }
-
-    parsed.push(')');
-    parsed
 }
 
