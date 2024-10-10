@@ -34,6 +34,10 @@ impl Expression for Binary {
     fn evaluate(&self) -> Box<dyn LiteralValue> {
         let left = self.left.evaluate();
         let right = self.right.evaluate();
+
+        let is_left_str = left.get_name().contains("StringLiteral");
+        let is_right_str = right.get_name().contains("StringLiteral");
+
         let left_val = left.print_value();
         let right_val = right.print_value();
 
@@ -48,68 +52,72 @@ impl Expression for Binary {
 
         match self.operator.token_type {
             TokenType::Minus => {
-                if let (Some(l), Some(r)) = (left_num, right_num) {
-                    return Box::new(NumberLiteral{ value: l - r });
-                } else {
-                    panic!("Trying to negate non-number literal");
+                if !is_left_str && !is_right_str {
+                    if let (Some(l), Some(r)) = (left_num, right_num) {
+                        return Box::new(NumberLiteral{ value: l - r });
+                    }
                 }
+                panic!("Trying to negate non-number literal");
             },
             TokenType::Slash => {
-                if let (Some(l), Some(r)) = (left_num, right_num) {
-                    return Box::new(NumberLiteral{ value: l / r });
-                } else {
-                    panic!("Trying to negate non-number literal");
+                if !is_left_str && !is_right_str {
+                    if let (Some(l), Some(r)) = (left_num, right_num) {
+                        return Box::new(NumberLiteral{ value: l / r });
+                    }
                 }
+                panic!("Trying to negate non-number literal");
             },
             TokenType::Star => {
-                if let (Some(l), Some(r)) = (left_num, right_num) {
-                    return Box::new(NumberLiteral{ value: l * r });
-                } else {
-                    panic!("Trying to negate non-number literal");
+                if !is_left_str && !is_right_str {
+                    if let (Some(l), Some(r)) = (left_num, right_num) {
+                        return Box::new(NumberLiteral{ value: l * r });
+                    }
                 }
+                panic!("Trying to negate non-number literal");
             },
             TokenType::Plus => {
-                if let (Some(l), Some(r)) = (left_num, right_num) {
-                    return Box::new(NumberLiteral{ value: l + r });
-                } else {
-                    if left_num.is_some() || right_num.is_some() {
-                        panic!("Trying to add invalid types");
-                    }
-                    if &left_val == "false" || &left_val == "true" || left_val == "nil" || &right_val == "false" || &right_val == "true" || right_val == "nil" {
-                        panic!("Trying to add invalid types");
-                    }
+                if is_left_str && is_right_str {
                     let mut left_string = left_val.to_owned();
                     left_string.push_str(&right_val.to_owned());
                     return Box::new(StringLiteral{ value: left_string });
+                } else if !is_left_str && !is_right_str {
+                    if let (Some(l), Some(r)) = (left_num, right_num) {
+                        return Box::new(NumberLiteral{ value: l + r });
+                    }
                 }
+                panic!("Trying to add invalid types");
             },
             TokenType::Greater => {
-                if let (Some(l), Some(r)) = (left_num, right_num) {
-                    return Box::new(BooleanLiteral{ value: l > r });
-                } else {
-                    panic!("Trying to compare to non-numeric values");
+                if !is_left_str && !is_right_str {
+                    if let (Some(l), Some(r)) = (left_num, right_num) {
+                        return Box::new(BooleanLiteral{ value: l > r });
+                    }
                 }
+                panic!("Trying to compare to non-numeric values");
             },
             TokenType::GreaterEqual => {
-                if let (Some(l), Some(r)) = (left_num, right_num) {
-                    return Box::new(BooleanLiteral{ value: l >= r });
-                } else {
-                    panic!("Trying to compare to non-numeric values");
+                if !is_left_str && !is_right_str {
+                    if let (Some(l), Some(r)) = (left_num, right_num) {
+                        return Box::new(BooleanLiteral{ value: l >= r });
+                    }
                 }
+                panic!("Trying to compare to non-numeric values");
             },
             TokenType::Less => {
-                if let (Some(l), Some(r)) = (left_num, right_num) {
-                    return Box::new(BooleanLiteral{ value: l > r });
-                } else {
-                    panic!("Trying to compare to non-numeric values");
+                if !is_left_str && !is_right_str {
+                    if let (Some(l), Some(r)) = (left_num, right_num) {
+                        return Box::new(BooleanLiteral{ value: l > r });
+                    }
                 }
+                panic!("Trying to compare to non-numeric values");
             },
             TokenType::LessEqual => {
-                if let (Some(l), Some(r)) = (left_num, right_num) {
-                    return Box::new(BooleanLiteral{ value: l <= r });
-                } else {
-                    panic!("Trying to compare to non-numeric values");
+                if !is_left_str && !is_right_str {
+                    if let (Some(l), Some(r)) = (left_num, right_num) {
+                        return Box::new(BooleanLiteral{ value: l <= r });
+                    }
                 }
+                panic!("Trying to compare to non-numeric values");
             },
             TokenType::BangEqual => return Box::new(BooleanLiteral{ value: is_equal(left, right)}),
             _ => panic!("Invalid operation in binary expression")

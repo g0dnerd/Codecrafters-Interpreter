@@ -3,6 +3,7 @@ use std::fmt;
 
 pub trait LiteralValue: LiteralValueClone {
     fn print_value(&self) -> String;
+    fn get_name(&self) -> &'static str;
 }
 
 pub trait LiteralValueClone {
@@ -21,6 +22,13 @@ where
 impl Clone for Box<dyn LiteralValue> {
     fn clone(&self) -> Box<dyn LiteralValue> {
         self.clone_box()
+    }
+}
+
+impl fmt::Debug for dyn LiteralValue {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let name = self.get_name();
+        write!(f, "{}", name)
     }
 }
 
@@ -75,6 +83,10 @@ impl LiteralValue for NumberLiteral {
             self.value.to_string()
         }
     }
+
+    fn get_name(&self) -> &'static str {
+        std::any::type_name::<Self>()
+    }
 }
 
 #[derive(Clone)]
@@ -85,6 +97,10 @@ pub struct StringLiteral {
 impl LiteralValue for StringLiteral {
     fn print_value(&self) -> String {
         self.value.clone()
+    }
+
+    fn get_name(&self) -> &'static str {
+        std::any::type_name::<Self>()
     }
 }
 
@@ -100,6 +116,10 @@ impl LiteralValue for BooleanLiteral {
         }
         String::from("true")
     }
+
+    fn get_name(&self) -> &'static str {
+        std::any::type_name::<Self>()
+    }
 }
 
 #[derive(Clone)]
@@ -108,5 +128,9 @@ pub struct NilLiteral;
 impl LiteralValue for NilLiteral {
     fn print_value(&self) -> String {
         String::from("nil")
+    }
+
+    fn get_name(&self) -> &'static str {
+        std::any::type_name::<Self>()
     }
 }
