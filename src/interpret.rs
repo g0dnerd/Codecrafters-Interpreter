@@ -76,12 +76,11 @@ pub fn interpret_single_expr(expr: Box<dyn Expression>, environment: &mut Enviro
                     return Ok(());
                 }
             } else {
-                println!("nil");
                 return Ok(());
             }
         },
         Err(e) => {
-            eprintln!("{e}");
+            eprintln!("Error: {e}");
             return Err(e);
         },
     }

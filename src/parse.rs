@@ -47,7 +47,7 @@ impl Parser {
     }
 
     /// Left in for legacy tests
-    pub fn parse(&mut self) -> Result<Box<dyn Expression>> {
+    pub fn parse_(&mut self) -> Result<Box<dyn Expression>> {
         match self.expression() {
             Ok(expr) => return Ok(expr),
             Err(e) => {
@@ -57,14 +57,15 @@ impl Parser {
         }
     }
 
-    pub fn parse_and_interpret(&mut self) -> Result<Vec<Box<dyn Statement>>> {
+    pub fn parse(&mut self) -> Result<Vec<Box<dyn Statement>>> {
         let mut statements = Vec::new();
         while !self.is_at_end() {
-            statements.push(self.declaration()?);
-            match self.statement() {
-                Ok(s) => statements.push(s),
+            match self.declaration() {
+                Ok(stmt) => {
+                    statements.push(stmt);
+                },
                 Err(e) => {
-                    eprintln!("Error: {}", e);
+                    eprintln!("Error: {e}");
                     return Err(e);
                 }
             }
@@ -262,7 +263,6 @@ impl Parser {
             match self.var_declaration() {
                 Ok(stmt) => return Ok(stmt),
                 Err(e) => {
-                    self.synchronize();
                     return Err(e);
                 }
             }
@@ -289,7 +289,9 @@ impl Parser {
                 }
                 return Ok(Box::new(VarStatement::new(t, None)));
             },
-            Err(e) => return Err(e)
+            Err(e) => {
+                return Err(e);
+            }
         }
     }
 }

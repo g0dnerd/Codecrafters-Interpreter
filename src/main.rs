@@ -39,7 +39,7 @@ fn main() -> ExitCode {
         "parse" => {
             let file_contents = read_file_contents(filename);
             match tokenize(file_contents) {
-                Ok(scanner) => match parse(scanner.tokens) {
+                Ok(scanner) => match parse_(scanner.tokens) {
                     Ok(expr) => {
                         print_expr(&expr);
                     },
@@ -54,16 +54,15 @@ fn main() -> ExitCode {
         "evaluate" => {
             let file_contents = read_file_contents(filename);
             match tokenize(file_contents) {
-                Ok(scanner) => match parse_and_interpret(scanner.tokens) {
-                    Ok(stmt) => {
+                Ok(scanner) => match parse_(scanner.tokens) {
+                    Ok(expr) => {
                         let mut environment = Environment::new();
-                        let mut interpreter = Interpreter::new(stmt);
-                        match interpreter.interpret() {
-                            Ok(_) => return ExitCode::SUCCESS,
+                        match interpret_single_expr(expr, &mut environment) {
+                            Ok(_) => return ExitCode::from(0),
                             Err(_) => return ExitCode::from(70)
                         }
                     },
-                    Err(_) => return ExitCode::from(65)
+                    Err(_) => return ExitCode::from(70)
                 },
                 Err(_) => return ExitCode::from(65),
             }
@@ -71,7 +70,7 @@ fn main() -> ExitCode {
         "run" => {
             let file_contents = read_file_contents(filename);
             match tokenize(file_contents) {
-                Ok(scanner) => match parse_and_interpret(scanner.tokens) {
+                Ok(scanner) => match parse(scanner.tokens) {
                     Ok(stmts) => {
                         let mut interpreter = Interpreter::new(stmts);
                         match interpreter.interpret() {
@@ -108,20 +107,17 @@ fn tokenize(file_contents: String) -> Result<Scanner, Scanner> {
     Ok(scanner)
 }
 
-fn parse(tokens: Vec<Token>) -> Result<Box<dyn Expression>, ParserError> {
-    for t in &tokens {
-        println!("{}", t.to_string());
-    }
+fn parse_(tokens: Vec<Token>) -> Result<Box<dyn Expression>, ParserError> {
     let mut parser = Parser::new(tokens);
-    match parser.parse() {
+    match parser.parse_() {
         Ok(expr) => return Ok(expr),
         Err(e) => return Err(e)
     }
 }
 
-fn parse_and_interpret(tokens: Vec<Token>) -> Result<Vec<Box<dyn Statement>>, ParserError> {
+fn parse(tokens: Vec<Token>) -> Result<Vec<Box<dyn Statement>>, ParserError> {
     let mut parser = Parser::new(tokens);
-    match parser.parse_and_interpret() {
+    match parser.parse() {
         Ok(stmts) => return Ok(stmts),
         Err(e) => return Err(e)
     }

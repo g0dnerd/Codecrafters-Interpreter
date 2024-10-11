@@ -2,8 +2,17 @@ use crate::{environment::Environment, expression::{Expression, RuntimeError}, to
 
 type Result<T> = std::result::Result<T, RuntimeError>;
 
+#[derive(Debug, Eq, PartialEq)]
+pub enum StatementType {
+    Expression,
+    Print,
+    Var,
+}
+
 pub trait Statement {
     fn evaluate(&self, environment: &mut Environment) -> Result<()>;
+    fn get_type(&self) -> StatementType;
+    fn dbg(&self) -> String;
 }
 
 pub struct ExpressionStatement {
@@ -15,6 +24,14 @@ impl Statement for ExpressionStatement {
             Ok(_) => return Ok(()),
             Err(e) => return Err(e)
         }
+    }
+
+    fn get_type(&self) -> StatementType {
+        StatementType::Expression
+    }
+
+    fn dbg(&self) -> String {
+        format!("Expression statement with value {}", self.value.accept())
     }
 }
 impl ExpressionStatement {
@@ -47,6 +64,14 @@ impl Statement for PrintStatement {
         }
         Ok(())
     }
+
+    fn get_type(&self) -> StatementType {
+        StatementType::Print
+    }
+
+    fn dbg(&self) -> String {
+        format!("Print statement with value {}", self.value.accept())
+    }
 }
 impl PrintStatement {
     pub fn new(value: Box<dyn Expression>) -> Self {
@@ -71,6 +96,15 @@ impl Statement for VarStatement {
         }
         environment.define(self.name.lexeme.clone(), None);
         Ok(())
+    }
+
+    fn get_type(&self) -> StatementType {
+        StatementType::Var
+    }
+
+    fn dbg(&self) -> String {
+        let v = if let Some(i) = &self.initializer { i.accept() } else { String::from("null") };
+        format!("name: {}, initializer: {}", self.name.to_string(), v)
     }
 }
 impl VarStatement {

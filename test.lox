@@ -1,1 +1,2 @@
 var quz = 18;
+print quz
