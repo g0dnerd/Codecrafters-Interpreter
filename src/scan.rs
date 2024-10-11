@@ -26,7 +26,7 @@ impl fmt::Display for UnexpectedCharacterError {
 }
 
 pub struct Scanner {
-    source: String,
+    graphemes: Vec<String>,
     pub tokens: Vec<Token>,
     start: usize,
     current: usize,
@@ -36,8 +36,12 @@ pub struct Scanner {
 
 impl Scanner {
     pub fn new(source: String) -> Self {
+        let graphemes = source
+            .graphemes(true)
+            .map(|g| g.to_string())
+            .collect::<Vec<String>>();
         Self {
-            source,
+            graphemes,
             tokens: vec![],
             start: 0,
             current: 0,
@@ -68,8 +72,8 @@ impl Scanner {
 
     /// Returns true if the current character is the last one in self.source
     fn is_at_end(&self) -> bool {
-        let graphemes = self.source.graphemes(true).collect::<Vec<&str>>();
-        self.current >= graphemes.len()
+        // let graphemes = self.source.graphemes(true).collect::<Vec<&str>>();
+        self.current >= self.graphemes.len()
     }
 
     fn scan_token(&mut self) -> Result<()> {
@@ -167,11 +171,10 @@ impl Scanner {
     /// returns the new current character, if there is one
     fn advance(&mut self) -> Option<&str> {
         self.current += 1;
-        let graphemes = self.source.graphemes(true).collect::<Vec<&str>>();
-        if self.current > graphemes.len() {
+        if self.current > self.graphemes.len() {
             return None;
         }
-        Some(graphemes[self.current - 1])
+        Some(&self.graphemes[self.current - 1])
     }
 
     /// Returns true if the next character is equal to `expected`
@@ -193,8 +196,7 @@ impl Scanner {
         if self.is_at_end() {
             return "\0";
         }
-        let graphemes = self.source.graphemes(true).collect::<Vec<&str>>();
-        graphemes[self.current]
+        &self.graphemes[self.current]
     }
 
     /// Returns the character two positions ahead, if there is one
@@ -202,9 +204,8 @@ impl Scanner {
         if self.is_at_end() {
             return "\0";
         }
-        let graphemes = self.source.graphemes(true).collect::<Vec<&str>>();
-        if self.current < graphemes.len() {
-            return graphemes[self.current + 1];
+        if self.current < self.graphemes.len() {
+            return &self.graphemes[self.current + 1];
         }
         return "\0";
     }
@@ -215,8 +216,7 @@ impl Scanner {
 
     fn add_literal_token(&mut self, token_type: TokenType, literal: Option<Box<dyn LiteralValue>>) {
         // Parse lexeme from source
-        let graphemes = self.source.graphemes(true).collect::<Vec<&str>>();
-        let text = graphemes[self.start..self.current].concat();
+        let text = self.graphemes[self.start..self.current].concat();
         self.tokens
             .push(Token::new(token_type, text, literal, self.line));
     }
@@ -244,9 +244,8 @@ impl Scanner {
         self.advance();
 
         // Parse the string literals value from source
-        let graphemes = self.source.graphemes(true).collect::<Vec<&str>>();
         let literal = StringLiteral {
-            value: graphemes[self.start + 1..self.current - 1].concat()
+            value: self.graphemes[self.start + 1..self.current - 1].concat()
         };
 
         self.add_literal_token(TokenType::String, Some(Box::new(literal)));
@@ -268,8 +267,7 @@ impl Scanner {
             }
         }
 
-        let graphemes = self.source.graphemes(true).collect::<Vec<&str>>();
-        let value_str = graphemes[self.start..self.current].concat();
+        let value_str = self.graphemes[self.start..self.current].concat();
         let literal = NumberLiteral {
             value: value_str
                 .parse()
@@ -285,8 +283,7 @@ impl Scanner {
         while is_alphabetic(self.peek()) || is_digit(self.peek()) || self.peek() == "_" {
             self.advance();
         }
-        let graphemes = self.source.graphemes(true).collect::<Vec<&str>>();
-        let value_str = graphemes[self.start..self.current].concat();
+        let value_str = self.graphemes[self.start..self.current].concat();
         if let Some(identifier_type) = KEYWORDS.lock().unwrap().get(value_str.as_str()) {
             self.add_token(identifier_type.clone());
             return Ok(());
