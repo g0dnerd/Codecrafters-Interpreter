@@ -51,10 +51,6 @@ impl Scanner {
     }
 
     pub fn scan_tokens(&mut self) {
-        // let graphemes = self.source.graphemes(true).collect::<Vec<&str>>();
-        // for g in graphemes {
-        //     eprintln!("{g}");
-        // }
         while !self.is_at_end() {
             self.start = self.current;
             match self.scan_token() {

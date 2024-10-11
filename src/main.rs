@@ -2,10 +2,11 @@ use std::env;
 use std::fs;
 use std::process::ExitCode;
 
+use codecrafters_interpreter::environment::Environment;
 use codecrafters_interpreter::expression::Expression;
 use codecrafters_interpreter::ast::print_expr;
-use codecrafters_interpreter::interpret::interpret;
 use codecrafters_interpreter::interpret::interpret_single_expr;
+use codecrafters_interpreter::interpret::Interpreter;
 use codecrafters_interpreter::parse::Parser;
 use codecrafters_interpreter::parse::ParserError;
 use codecrafters_interpreter::scan::Scanner;
@@ -53,9 +54,11 @@ fn main() -> ExitCode {
         "evaluate" => {
             let file_contents = read_file_contents(filename);
             match tokenize(file_contents) {
-                Ok(scanner) => match parse(scanner.tokens) {
-                    Ok(stmts) => {
-                        match interpret_single_expr(stmts) {
+                Ok(scanner) => match parse_and_interpret(scanner.tokens) {
+                    Ok(stmt) => {
+                        let mut environment = Environment::new();
+                        let mut interpreter = Interpreter::new(stmt);
+                        match interpreter.interpret() {
                             Ok(_) => return ExitCode::SUCCESS,
                             Err(_) => return ExitCode::from(70)
                         }
@@ -70,7 +73,8 @@ fn main() -> ExitCode {
             match tokenize(file_contents) {
                 Ok(scanner) => match parse_and_interpret(scanner.tokens) {
                     Ok(stmts) => {
-                        match interpret(stmts) {
+                        let mut interpreter = Interpreter::new(stmts);
+                        match interpreter.interpret() {
                             Ok(_) => return ExitCode::SUCCESS,
                             Err(_) => return ExitCode::from(70)
                         }
@@ -105,6 +109,9 @@ fn tokenize(file_contents: String) -> Result<Scanner, Scanner> {
 }
 
 fn parse(tokens: Vec<Token>) -> Result<Box<dyn Expression>, ParserError> {
+    for t in &tokens {
+        println!("{}", t.to_string());
+    }
     let mut parser = Parser::new(tokens);
     match parser.parse() {
         Ok(expr) => return Ok(expr),

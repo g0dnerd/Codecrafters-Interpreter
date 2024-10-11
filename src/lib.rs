@@ -10,6 +10,7 @@ pub mod scan;
 pub mod token;
 pub mod interpret;
 pub mod statement;
+pub mod environment;
 
 pub fn report(line: usize, location: &str, message: &str) {
     eprintln!("[line {}] Error{}: {}", line, location, message);

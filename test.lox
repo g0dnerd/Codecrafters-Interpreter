@@ -1,4 +1,1 @@
-print "one";
-print true;
-print "a"
-print 2 + 1;
+var quz = 18;

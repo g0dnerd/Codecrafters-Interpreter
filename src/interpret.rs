@@ -1,44 +1,28 @@
+use crate::environment::Environment;
 use crate::expression::{Expression, RuntimeError};
 use crate::statement::Statement;
 use crate::token::{LiteralType, LiteralValue};
 
 type Result<T> = std::result::Result<T, RuntimeError>;
 
-pub fn interpret_single_expr(expr: Box<dyn Expression>) -> Result<()> {
-    let value = expr.evaluate();
-    match value {
-        Ok(v) => {
-            let expr_type = v.get_type();
-            let expr_value = v.print_value();
-            if expr_type == LiteralType::NumberLiteral {
-                let out_num = expr_value.parse::<f32>()
-                    .expect("to be able to parse number expression to f32");
-                println!("{}", out_num);
-                return Ok(());
-            } else {
-                println!("{}", expr_value);
-                return Ok(());
+pub struct Interpreter {
+    statements: Vec<Box<dyn Statement>>,
+    environment: Environment,
+}
+impl Interpreter {
+    pub fn new(statements: Vec<Box<dyn Statement>>) -> Self  {
+        Self { statements, environment: Environment::new() }
+    }
+
+    pub fn interpret(&mut self) -> Result<()> {
+        for s in self.statements.iter_mut() {
+            match s.evaluate(&mut self.environment) {
+                Ok(_) => (),
+                Err(e) => return Err(e)
             }
-        },
-        Err(e) => {
-            eprintln!("{e}");
-            return Err(e);
-        },
-    }
-}
-
-pub fn interpret(statements: Vec<Box<dyn Statement>>) -> Result<()> {
-    for s in statements {
-        match execute(s) {
-            Ok(_) => (),
-            Err(e) => return Err(e)
         }
+        Ok(())
     }
-    Ok(())
-}
-
-fn execute(statement: Box<dyn Statement>) -> Result<()> {
-    statement.evaluate()
 }
 
 pub fn is_truthy(expr: Box<dyn LiteralValue>) -> bool {
@@ -74,3 +58,32 @@ pub fn parenthesize(name: &str, expressions: Vec<&Box<dyn Expression>>) -> Strin
     parsed.push(')');
     parsed
 }
+
+pub fn interpret_single_expr(expr: Box<dyn Expression>, environment: &mut Environment) -> Result<()> {
+    let value = expr.evaluate(environment);
+    match value {
+        Ok(v) => {
+            if let Some(value) = v {
+                let expr_type = value.get_type();
+                let expr_value = value.print_value();
+                if expr_type == LiteralType::NumberLiteral {
+                    let out_num = expr_value.parse::<f32>()
+                        .expect("to be able to parse number expression to f32");
+                    println!("{}", out_num);
+                    return Ok(());
+                } else {
+                    println!("{}", expr_value);
+                    return Ok(());
+                }
+            } else {
+                println!("nil");
+                return Ok(());
+            }
+        },
+        Err(e) => {
+            eprintln!("{e}");
+            return Err(e);
+        },
+    }
+}
+

@@ -1,7 +1,7 @@
-use crate::expression::{Binary, Expression, Grouping, Literal, Unary};
+use crate::expression::{Binary, Expression, Grouping, Literal, Unary, Variable};
 use crate::token::{BooleanLiteral, NilLiteral, Token};
 use crate::TokenType;
-use crate::statement::{ExpressionStatement, PrintStatement, Statement};
+use crate::statement::{ExpressionStatement, PrintStatement, Statement, VarStatement};
 use std::fmt;
 
 type Result<T> = std::result::Result<T, ParserError>;
@@ -18,19 +18,19 @@ impl fmt::Display for ParserError {
         match self {
             Self::UndisclosedDelimiter(t) => match t.token_type {
                 TokenType::Eof => write!(f, "at end: Undisclosed delimiter"),
-                _ => write!(f, "at ' {}: Undisclosed delimiter", t.lexeme),
+                _ => write!(f, "at {}: Undisclosed delimiter", t.to_string()),
             },
             Self::ExpectExpression(t) => match t.token_type {
                 TokenType::Eof => write!(f, "at end: Expected expression"),
-                _ => write!(f, "at ' {}: Expected expression", t.lexeme),
+                _ => write!(f, "at {}: Expected expression", t.to_string()),
             },
             Self::UnexpectedToken(t) => match t.token_type {
                 TokenType::Eof => write!(f, "at end: Unexpected token"),
-                _ => write!(f, "at ' {}: Unexpected token", t.lexeme),
+                _ => write!(f, "at {}: Unexpected token", t.to_string()),
             },
             Self::NoSemicolon(t) => match t.token_type {
                 TokenType::Eof => write!(f, "at end: Missing semicolon"),
-                _ => write!(f, "Missing semicolon after {}", t.lexeme),
+                _ => write!(f, "Missing semicolon after {}", t.to_string()),
             }
         }
     }
@@ -46,13 +46,21 @@ impl Parser {
         Self { tokens, current: 0 }
     }
 
+    /// Left in for legacy tests
     pub fn parse(&mut self) -> Result<Box<dyn Expression>> {
-        Ok(self.expression()?)
+        match self.expression() {
+            Ok(expr) => return Ok(expr),
+            Err(e) => {
+                eprintln!("Error: {}", e);
+                return Err(e);
+            }
+        }
     }
 
     pub fn parse_and_interpret(&mut self) -> Result<Vec<Box<dyn Statement>>> {
         let mut statements = Vec::new();
         while !self.is_at_end() {
+            statements.push(self.declaration()?);
             match self.statement() {
                 Ok(s) => statements.push(s),
                 Err(e) => {
@@ -77,7 +85,8 @@ impl Parser {
         Ok(Box::new(PrintStatement::new(value)))
     }
 
-    fn expression_statement(&mut self) -> Result<Box<dyn Statement>> {        let expr = self.expression()?;
+    fn expression_statement(&mut self) -> Result<Box<dyn Statement>> {
+        let expr = self.expression()?;
         self.consume(TokenType::Semicolon)?;
         Ok(Box::new(ExpressionStatement::new(expr)))
     }
@@ -162,7 +171,10 @@ impl Parser {
             if let Some(l) = self.previous().literal {
                 return Ok(Box::new(Literal::new(l)));
             }
-            return Err(ParserError::UnexpectedToken(self.peek()));
+            // return Err(ParserError::UnexpectedToken(self.peek()));
+        }
+        if self.match_tokens(vec![TokenType::Identifier]) {
+            return Ok(Box::new(Variable::new(self.previous())));
         }
         if self.match_tokens(vec![TokenType::LeftParen]) {
             let expr = self.expression()?;
@@ -221,7 +233,6 @@ impl Parser {
         self.tokens[self.current - 1].clone()
     }
 
-    #[allow(dead_code)] // TODO: remove once `synchronize` gets used
     fn synchronize(&mut self) {
         self.advance();
 
@@ -243,6 +254,42 @@ impl Parser {
             }
 
             self.advance();
+        }
+    }
+
+    fn declaration(&mut self) -> Result<Box<dyn Statement>> {
+        if self.match_tokens(vec![TokenType::Var]) {
+            match self.var_declaration() {
+                Ok(stmt) => return Ok(stmt),
+                Err(e) => {
+                    self.synchronize();
+                    return Err(e);
+                }
+            }
+        }
+        match self.statement() {
+            Ok(stmt) => return Ok(stmt),
+            Err(e) => {
+                self.synchronize();
+                return Err(e);
+            }
+        }
+    }
+
+    fn var_declaration(&mut self) -> Result<Box<dyn Statement>> {
+        match self.consume(TokenType::Identifier) {
+            Ok(t) => {
+                if self.match_tokens(vec![TokenType::Equal]) {
+                    let initializer = self.expression()?;
+                    match self.consume(TokenType::Semicolon) {
+                        Ok(_) => (),
+                        Err(e) => return Err(e)
+                    }
+                    return Ok(Box::new(VarStatement::new(t, Some(initializer))));
+                }
+                return Ok(Box::new(VarStatement::new(t, None)));
+            },
+            Err(e) => return Err(e)
         }
     }
 }
