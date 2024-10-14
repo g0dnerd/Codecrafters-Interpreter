@@ -47,12 +47,17 @@ impl Expression for AssignExpr {
     }
 
     fn evaluate(&self, environment: &mut Environment) -> Result<Option<Box<dyn LiteralValue>>> {
-        match self.value.evaluate(environment)? {
-            Some(v) => {
+        match self.value.evaluate(environment) {
+            Ok(Some(v)) => {
                 environment.assign(self.name.clone(), v.clone())?;
                 Ok(Some(v))
             }
-            _ => Ok(None),
+            Ok(None) => {
+                return Ok(None);
+            }
+            Err(e) => {
+                return Err(e);
+            }
         }
     }
 

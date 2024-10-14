@@ -67,7 +67,7 @@ fn main() -> ExitCode {
             match tokenize(file_contents) {
                 Ok(scanner) => match parse_print_single_expr(scanner.tokens) {
                     Ok(expr) => {
-                        let mut environment = Environment::new();
+                        let mut environment = Environment::new(None);
                         match interpret_single_expr(expr, &mut environment) {
                             Ok(_) => return ExitCode::SUCCESS,
                             Err(_) => return runtime_err_exit_code,

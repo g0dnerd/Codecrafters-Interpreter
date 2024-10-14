@@ -13,7 +13,7 @@ impl Interpreter {
     pub fn new(statements: Vec<Box<dyn Statement>>) -> Self {
         Self {
             statements,
-            environment: Environment::new(),
+            environment: Environment::new(None),
         }
     }
 

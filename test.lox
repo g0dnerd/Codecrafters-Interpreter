@@ -1,19 +1,13 @@
-var a = "global a";
-var b = "global b";
-var c = "global c";
 {
-  var a = "outer a";
-  var b = "outer b";
+  var quz = "outer quz";
+  var bar = "outer bar";
   {
-    var a = "inner a";
-    print a;
-    print b;
-    print c;
+    quz = "modified quz";
+    var bar = "inner bar";
+    print quz;
+    print bar;
   }
-  print a;
-  print b;
-  print c;
+  print quz;
+  print bar;
 }
-print a;
-print b;
-print c;
+print bar;

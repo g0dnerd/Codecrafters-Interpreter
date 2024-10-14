@@ -68,7 +68,7 @@ impl Statement for PrintStmt {
                 }
             }
             Err(e) => {
-                eprintln!("{e}");
+                eprintln!("Error while evaluating print statement: {e}");
                 return Err(e);
             }
         }
@@ -103,9 +103,10 @@ impl Statement for VarStmt {
                 }
                 Err(e) => return Err(e),
             }
+        } else {
+            env.define(self.name.lexeme.clone(), None);
+            Ok(())
         }
-        env.define(self.name.lexeme.clone(), None);
-        Ok(())
     }
 
     fn get_type(&self) -> StatementType {
@@ -133,8 +134,9 @@ pub struct BlockStmt {
 impl Statement for BlockStmt {
     fn evaluate(&self, env: &mut Environment) -> Result<()> {
         let previous = env.clone();
+        let mut enclosing = Environment::new(Some(Box::new(env.clone())));
         for s in &self.stmts {
-            match s.evaluate(env) {
+            match s.evaluate(&mut enclosing) {
                 Ok(_) => (),
                 Err(e) => {
                     env.revert_to(&previous);
@@ -142,7 +144,10 @@ impl Statement for BlockStmt {
                 }
             }
         }
-        env.revert_to(&previous);
+        let outer = enclosing
+            .enclosing()
+            .expect("expected enclosing environment");
+        env.revert_to(outer);
         Ok(())
     }
 
