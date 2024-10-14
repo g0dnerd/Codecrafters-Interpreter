@@ -6,6 +6,7 @@ use std::collections::HashMap;
 
 type Result<T> = std::result::Result<T, RuntimeError>;
 
+#[derive(Clone)]
 pub struct Environment {
     values: HashMap<String, Option<Box<dyn LiteralValue>>>,
 }
@@ -42,5 +43,9 @@ impl Environment {
                 })
             }
         }
+    }
+
+    pub fn revert_to(&mut self, target: &Environment) {
+        self.values = target.values.clone();
     }
 }

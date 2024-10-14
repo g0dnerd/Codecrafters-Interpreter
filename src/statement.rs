@@ -11,20 +11,21 @@ pub enum StatementType {
     Expression,
     Print,
     Var,
+    Block,
 }
 
 pub trait Statement {
-    fn evaluate(&self, environment: &mut Environment) -> Result<()>;
+    fn evaluate(&self, env: &mut Environment) -> Result<()>;
     fn get_type(&self) -> StatementType;
     fn dbg(&self) -> String;
 }
 
-pub struct ExpressionStatement {
+pub struct ExpressionStmt {
     value: Box<dyn Expression>,
 }
-impl Statement for ExpressionStatement {
-    fn evaluate(&self, environment: &mut Environment) -> Result<()> {
-        match self.value.evaluate(environment) {
+impl Statement for ExpressionStmt {
+    fn evaluate(&self, env: &mut Environment) -> Result<()> {
+        match self.value.evaluate(env) {
             Ok(_) => return Ok(()),
             Err(e) => return Err(e),
         }
@@ -38,18 +39,18 @@ impl Statement for ExpressionStatement {
         format!("Expression statement with value {}", self.value.accept())
     }
 }
-impl ExpressionStatement {
+impl ExpressionStmt {
     pub fn new(value: Box<dyn Expression>) -> Self {
         Self { value }
     }
 }
 
-pub struct PrintStatement {
+pub struct PrintStmt {
     value: Box<dyn Expression>,
 }
-impl Statement for PrintStatement {
-    fn evaluate(&self, environment: &mut Environment) -> Result<()> {
-        match self.value.evaluate(environment) {
+impl Statement for PrintStmt {
+    fn evaluate(&self, env: &mut Environment) -> Result<()> {
+        match self.value.evaluate(env) {
             Ok(v) => {
                 if let Some(parsed) = v {
                     let out = parsed.print_value();
@@ -82,28 +83,28 @@ impl Statement for PrintStatement {
         format!("Print statement with value {}", self.value.accept())
     }
 }
-impl PrintStatement {
+impl PrintStmt {
     pub fn new(value: Box<dyn Expression>) -> Self {
         Self { value }
     }
 }
 
-pub struct VarStatement {
+pub struct VarStmt {
     name: Token,
     initializer: Option<Box<dyn Expression>>,
 }
-impl Statement for VarStatement {
-    fn evaluate(&self, environment: &mut Environment) -> Result<()> {
+impl Statement for VarStmt {
+    fn evaluate(&self, env: &mut Environment) -> Result<()> {
         if let Some(initializer) = &self.initializer {
-            match initializer.evaluate(environment) {
+            match initializer.evaluate(env) {
                 Ok(value) => {
-                    environment.define(self.name.lexeme.clone(), value);
+                    env.define(self.name.lexeme.clone(), value);
                     return Ok(());
                 }
                 Err(e) => return Err(e),
             }
         }
-        environment.define(self.name.lexeme.clone(), None);
+        env.define(self.name.lexeme.clone(), None);
         Ok(())
     }
 
@@ -120,8 +121,45 @@ impl Statement for VarStatement {
         format!("name: {}, initializer: {}", self.name.to_string(), v)
     }
 }
-impl VarStatement {
+impl VarStmt {
     pub fn new(name: Token, initializer: Option<Box<dyn Expression>>) -> Self {
         Self { name, initializer }
+    }
+}
+
+pub struct BlockStmt {
+    stmts: Vec<Box<dyn Statement>>,
+}
+impl Statement for BlockStmt {
+    fn evaluate(&self, env: &mut Environment) -> Result<()> {
+        let previous = env.clone();
+        for s in &self.stmts {
+            match s.evaluate(env) {
+                Ok(_) => (),
+                Err(e) => {
+                    env.revert_to(&previous);
+                    return Err(e);
+                }
+            }
+        }
+        env.revert_to(&previous);
+        Ok(())
+    }
+
+    fn get_type(&self) -> StatementType {
+        StatementType::Block
+    }
+
+    fn dbg(&self) -> String {
+        let mut o = String::new();
+        for s in &self.stmts {
+            o.push_str(&s.dbg());
+        }
+        o
+    }
+}
+impl BlockStmt {
+    pub fn new(stmts: Vec<Box<dyn Statement>>) -> Self {
+        Self { stmts }
     }
 }

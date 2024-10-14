@@ -2,7 +2,7 @@ use crate::expression::{
     AssignExpr, BinaryExpr, Expression, ExpressionType, GroupingExpr, LiteralExpr, UnaryExpr,
     VariableExpr,
 };
-use crate::statement::{ExpressionStatement, PrintStatement, Statement, VarStatement};
+use crate::statement::{BlockStmt, ExpressionStmt, PrintStmt, Statement, VarStmt};
 use crate::token::{BooleanLiteral, NilLiteral, Token};
 use crate::TokenType;
 use std::fmt;
@@ -86,19 +86,33 @@ impl Parser {
         if self.match_tokens(vec![TokenType::Print]) {
             return self.print_statement();
         }
+        if self.match_tokens(vec![TokenType::LeftBrace]) {
+            return self.block();
+        }
         self.expression_statement()
+    }
+
+    fn block(&mut self) -> Result<Box<dyn Statement>> {
+        let mut stmts: Vec<Box<dyn Statement>> = Vec::new();
+
+        while !self.check(TokenType::RightBrace) && !self.is_at_end() {
+            stmts.push(self.declaration()?);
+        }
+
+        self.consume(TokenType::RightBrace)?;
+        Ok(Box::new(BlockStmt::new(stmts)))
     }
 
     fn print_statement(&mut self) -> Result<Box<dyn Statement>> {
         let value = self.expression()?;
         self.consume(TokenType::Semicolon)?;
-        Ok(Box::new(PrintStatement::new(value)))
+        Ok(Box::new(PrintStmt::new(value)))
     }
 
     fn expression_statement(&mut self) -> Result<Box<dyn Statement>> {
         let expr = self.expression()?;
         self.consume(TokenType::Semicolon)?;
-        Ok(Box::new(ExpressionStatement::new(expr)))
+        Ok(Box::new(ExpressionStmt::new(expr)))
     }
 
     fn expression(&mut self) -> Result<Box<dyn Expression>> {
@@ -318,7 +332,7 @@ impl Parser {
                     Ok(_) => (),
                     Err(e) => return Err(e),
                 }
-                return Ok(Box::new(VarStatement::new(t, initializer)));
+                return Ok(Box::new(VarStmt::new(t, initializer)));
             }
             Err(e) => {
                 return Err(e);
