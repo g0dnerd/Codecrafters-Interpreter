@@ -1,4 +1,7 @@
-use crate::expression::{Binary, Expression, Grouping, Literal, Unary, Variable};
+use crate::expression::{
+    AssignExpr, BinaryExpr, Expression, ExpressionType, GroupingExpr, LiteralExpr, UnaryExpr,
+    VariableExpr,
+};
 use crate::statement::{ExpressionStatement, PrintStatement, Statement, VarStatement};
 use crate::token::{BooleanLiteral, NilLiteral, Token};
 use crate::TokenType;
@@ -11,6 +14,7 @@ pub enum ParserError {
     ExpectExpression(Token),
     UnexpectedToken(Token),
     NoSemicolon(Token),
+    InvalidAssignmentTarget(Token),
 }
 
 impl fmt::Display for ParserError {
@@ -31,6 +35,10 @@ impl fmt::Display for ParserError {
             Self::NoSemicolon(t) => match t.token_type {
                 TokenType::Eof => write!(f, "at end: Missing semicolon"),
                 _ => write!(f, "Missing semicolon after {}", t.to_string()),
+            },
+            ParserError::InvalidAssignmentTarget(t) => match t.token_type {
+                TokenType::Eof => write!(f, "at end: Invalid assignment target"),
+                _ => write!(f, "at {}: Invalid assignment target", t.to_string()),
             },
         }
     }
@@ -94,7 +102,27 @@ impl Parser {
     }
 
     fn expression(&mut self) -> Result<Box<dyn Expression>> {
-        self.equality()
+        self.assignment()
+    }
+
+    fn assignment(&mut self) -> Result<Box<dyn Expression>> {
+        let expr = self.equality()?;
+
+        if self.match_tokens(vec![TokenType::Equal]) {
+            let equals = self.previous();
+            let value = self.assignment()?;
+
+            if expr.get_type() == ExpressionType::Variable {
+                if let Some(name) = expr.get_token() {
+                    return Ok(Box::new(AssignExpr::new(name, value)));
+                } else {
+                    // Verified correct type above, so should never be reached
+                    panic!("Expected variable expression to contain a token");
+                }
+            }
+            return Err(ParserError::InvalidAssignmentTarget(equals));
+        }
+        Ok(expr)
     }
 
     fn equality(&mut self) -> Result<Box<dyn Expression>> {
@@ -103,7 +131,7 @@ impl Parser {
         while self.match_tokens(vec![TokenType::BangEqual, TokenType::EqualEqual]) {
             let operator = self.previous();
             let right = self.comparison()?;
-            expr = Box::new(Binary::new(expr, operator, right));
+            expr = Box::new(BinaryExpr::new(expr, operator, right));
         }
         Ok(expr)
     }
@@ -119,7 +147,7 @@ impl Parser {
         ]) {
             let operator = self.previous();
             let right = self.term()?;
-            expr = Box::new(Binary::new(expr, operator, right));
+            expr = Box::new(BinaryExpr::new(expr, operator, right));
         }
         Ok(expr)
     }
@@ -130,7 +158,7 @@ impl Parser {
         while self.match_tokens(vec![TokenType::Minus, TokenType::Plus]) {
             let operator = self.previous();
             let right = self.factor()?;
-            expr = Box::new(Binary::new(expr, operator, right));
+            expr = Box::new(BinaryExpr::new(expr, operator, right));
         }
         Ok(expr)
     }
@@ -141,7 +169,7 @@ impl Parser {
         while self.match_tokens(vec![TokenType::Slash, TokenType::Star]) {
             let operator = self.previous();
             let right = self.unary()?;
-            expr = Box::new(Binary::new(expr, operator, right));
+            expr = Box::new(BinaryExpr::new(expr, operator, right));
         }
         Ok(expr)
     }
@@ -150,38 +178,38 @@ impl Parser {
         if self.match_tokens(vec![TokenType::Bang, TokenType::Minus]) {
             let operator = self.previous();
             let right = self.unary()?;
-            return Ok(Box::new(Unary::new(operator, right)));
+            return Ok(Box::new(UnaryExpr::new(operator, right)));
         }
         self.primary()
     }
 
     fn primary(&mut self) -> Result<Box<dyn Expression>> {
         if self.match_tokens(vec![TokenType::False]) {
-            return Ok(Box::new(Literal::new(Box::new(BooleanLiteral {
+            return Ok(Box::new(LiteralExpr::new(Box::new(BooleanLiteral {
                 value: false,
             }))));
         }
         if self.match_tokens(vec![TokenType::True]) {
-            return Ok(Box::new(Literal::new(Box::new(BooleanLiteral {
+            return Ok(Box::new(LiteralExpr::new(Box::new(BooleanLiteral {
                 value: true,
             }))));
         }
         if self.match_tokens(vec![TokenType::Nil]) {
-            return Ok(Box::new(Literal::new(Box::new(NilLiteral))));
+            return Ok(Box::new(LiteralExpr::new(Box::new(NilLiteral))));
         }
         if self.match_tokens(vec![TokenType::Number, TokenType::String]) {
             if let Some(l) = self.previous().literal {
-                return Ok(Box::new(Literal::new(l)));
+                return Ok(Box::new(LiteralExpr::new(l)));
             }
             // return Err(ParserError::UnexpectedToken(self.peek()));
         }
         if self.match_tokens(vec![TokenType::Identifier]) {
-            return Ok(Box::new(Variable::new(self.previous())));
+            return Ok(Box::new(VariableExpr::new(self.previous())));
         }
         if self.match_tokens(vec![TokenType::LeftParen]) {
             let expr = self.expression()?;
             return match self.consume(TokenType::RightParen) {
-                Ok(_) => Ok(Box::new(Grouping::new(expr))),
+                Ok(_) => Ok(Box::new(GroupingExpr::new(expr))),
                 Err(e) => Err(e),
             };
         }

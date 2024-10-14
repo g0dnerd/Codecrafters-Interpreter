@@ -30,4 +30,17 @@ impl Environment {
             });
         }
     }
+
+    pub fn assign(&mut self, name: Token, value: Box<dyn LiteralValue>) -> Result<()> {
+        match self.values.insert(name.lexeme.clone(), Some(value)) {
+            Some(_) => Ok(()),
+            _ => {
+                let message = format!("Undefined variable '{}'.", name.lexeme);
+                Err(RuntimeError {
+                    token: name,
+                    message,
+                })
+            }
+        }
+    }
 }

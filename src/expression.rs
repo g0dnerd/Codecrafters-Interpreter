@@ -19,18 +19,65 @@ impl fmt::Display for RuntimeError {
     }
 }
 
+#[derive(Debug, Eq, PartialEq)]
+pub enum ExpressionType {
+    Assign,
+    Binary,
+    Grouping,
+    Literal,
+    Unary,
+    Variable,
+}
+
 pub trait Expression {
     fn accept(&self) -> String;
     fn evaluate(&self, environment: &mut Environment) -> Result<Option<Box<dyn LiteralValue>>>;
+    fn get_type(&self) -> ExpressionType;
+    fn get_token(&self) -> Option<Token>;
 }
 
-pub struct Binary {
+pub struct AssignExpr {
+    name: Token,
+    value: Box<dyn Expression>,
+}
+
+impl Expression for AssignExpr {
+    fn accept(&self) -> String {
+        format!("{} = {}", &self.name.lexeme, self.value.accept())
+    }
+
+    fn evaluate(&self, environment: &mut Environment) -> Result<Option<Box<dyn LiteralValue>>> {
+        match self.value.evaluate(environment)? {
+            Some(v) => {
+                environment.assign(self.name.clone(), v.clone())?;
+                Ok(Some(v))
+            }
+            _ => Ok(None),
+        }
+    }
+
+    fn get_type(&self) -> ExpressionType {
+        ExpressionType::Assign
+    }
+
+    fn get_token(&self) -> Option<Token> {
+        Some(self.name.clone())
+    }
+}
+
+impl AssignExpr {
+    pub fn new(name: Token, value: Box<dyn Expression>) -> Self {
+        Self { name, value }
+    }
+}
+
+pub struct BinaryExpr {
     left: Box<dyn Expression>,
     operator: Token,
     right: Box<dyn Expression>,
 }
 
-impl Expression for Binary {
+impl Expression for BinaryExpr {
     fn accept(&self) -> String {
         parenthesize(&self.operator.lexeme, vec![&self.left, &self.right])
     }
@@ -129,9 +176,17 @@ impl Expression for Binary {
             });
         }
     }
+
+    fn get_type(&self) -> ExpressionType {
+        ExpressionType::Binary
+    }
+
+    fn get_token(&self) -> Option<Token> {
+        Some(self.operator.clone())
+    }
 }
 
-impl Binary {
+impl BinaryExpr {
     pub fn new(left: Box<dyn Expression>, operator: Token, right: Box<dyn Expression>) -> Self {
         Self {
             left,
@@ -141,11 +196,11 @@ impl Binary {
     }
 }
 
-pub struct Grouping {
+pub struct GroupingExpr {
     expression: Box<dyn Expression>,
 }
 
-impl Expression for Grouping {
+impl Expression for GroupingExpr {
     fn accept(&self) -> String {
         parenthesize("group", vec![&self.expression])
     }
@@ -153,19 +208,27 @@ impl Expression for Grouping {
     fn evaluate(&self, environment: &mut Environment) -> Result<Option<Box<dyn LiteralValue>>> {
         self.expression.evaluate(environment)
     }
+
+    fn get_type(&self) -> ExpressionType {
+        ExpressionType::Grouping
+    }
+
+    fn get_token(&self) -> Option<Token> {
+        None
+    }
 }
 
-impl Grouping {
+impl GroupingExpr {
     pub fn new(expression: Box<dyn Expression>) -> Self {
         Self { expression }
     }
 }
 
-pub struct Literal {
+pub struct LiteralExpr {
     value: Box<dyn LiteralValue>,
 }
 
-impl Expression for Literal {
+impl Expression for LiteralExpr {
     fn accept(&self) -> String {
         self.value.print_value()
     }
@@ -173,20 +236,28 @@ impl Expression for Literal {
     fn evaluate(&self, _environment: &mut Environment) -> Result<Option<Box<dyn LiteralValue>>> {
         Ok(Some(self.value.clone()))
     }
+
+    fn get_type(&self) -> ExpressionType {
+        ExpressionType::Literal
+    }
+
+    fn get_token(&self) -> Option<Token> {
+        None
+    }
 }
 
-impl Literal {
+impl LiteralExpr {
     pub fn new(value: Box<dyn LiteralValue>) -> Self {
         Self { value }
     }
 }
 
-pub struct Unary {
+pub struct UnaryExpr {
     operator: Token,
     right: Box<dyn Expression>,
 }
 
-impl Expression for Unary {
+impl Expression for UnaryExpr {
     fn accept(&self) -> String {
         parenthesize(&self.operator.lexeme, vec![&self.right])
     }
@@ -225,18 +296,26 @@ impl Expression for Unary {
             message: String::from("Expected value in unary expression"),
         })
     }
+
+    fn get_type(&self) -> ExpressionType {
+        ExpressionType::Unary
+    }
+
+    fn get_token(&self) -> Option<Token> {
+        Some(self.operator.clone())
+    }
 }
 
-impl Unary {
+impl UnaryExpr {
     pub fn new(operator: Token, right: Box<dyn Expression>) -> Self {
         Self { operator, right }
     }
 }
 
-pub struct Variable {
+pub struct VariableExpr {
     name: Token,
 }
-impl Expression for Variable {
+impl Expression for VariableExpr {
     fn accept(&self) -> String {
         self.name.to_string()
     }
@@ -244,8 +323,16 @@ impl Expression for Variable {
     fn evaluate(&self, environment: &mut Environment) -> Result<Option<Box<dyn LiteralValue>>> {
         environment.get(self.name.clone())
     }
+
+    fn get_type(&self) -> ExpressionType {
+        ExpressionType::Variable
+    }
+
+    fn get_token(&self) -> Option<Token> {
+        Some(self.name.clone())
+    }
 }
-impl Variable {
+impl VariableExpr {
     pub fn new(name: Token) -> Self {
         Self { name }
     }
