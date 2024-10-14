@@ -1,4 +1,8 @@
-use crate::{environment::Environment, expression::{Expression, RuntimeError}, token::{LiteralType, Token}};
+use crate::{
+    environment::Environment,
+    expression::{Expression, RuntimeError},
+    token::{LiteralType, Token},
+};
 
 type Result<T> = std::result::Result<T, RuntimeError>;
 
@@ -22,7 +26,7 @@ impl Statement for ExpressionStatement {
     fn evaluate(&self, environment: &mut Environment) -> Result<()> {
         match self.value.evaluate(environment) {
             Ok(_) => return Ok(()),
-            Err(e) => return Err(e)
+            Err(e) => return Err(e),
         }
     }
 
@@ -47,16 +51,21 @@ impl Statement for PrintStatement {
     fn evaluate(&self, environment: &mut Environment) -> Result<()> {
         match self.value.evaluate(environment) {
             Ok(v) => {
-                let value = v.unwrap();
-                let out = value.print_value();
-                if value.get_type() == LiteralType::NumberLiteral {
-                    let n = out.parse::<f32>()
-                        .expect("to be able to parse number literal to f32");
-                    println!("{n}");
+                if let Some(parsed) = v {
+                    let out = parsed.print_value();
+                    if parsed.get_type() == LiteralType::NumberLiteral {
+                        let n = out
+                            .parse::<f32>()
+                            .expect("to be able to parse number literal to f32");
+                        println!("{n}");
+                    } else {
+                        println!("{out}");
+                    }
                 } else {
-                    println!("{out}");
+                    println!("nil");
+                    return Ok(());
                 }
-            },
+            }
             Err(e) => {
                 eprintln!("{e}");
                 return Err(e);
@@ -90,8 +99,8 @@ impl Statement for VarStatement {
                 Ok(value) => {
                     environment.define(self.name.lexeme.clone(), value);
                     return Ok(());
-                },
-                Err(e) => return Err(e)
+                }
+                Err(e) => return Err(e),
             }
         }
         environment.define(self.name.lexeme.clone(), None);
@@ -103,7 +112,11 @@ impl Statement for VarStatement {
     }
 
     fn dbg(&self) -> String {
-        let v = if let Some(i) = &self.initializer { i.accept() } else { String::from("null") };
+        let v = if let Some(i) = &self.initializer {
+            i.accept()
+        } else {
+            String::from("null")
+        };
         format!("name: {}, initializer: {}", self.name.to_string(), v)
     }
 }

@@ -4,14 +4,15 @@ use once_cell::sync::Lazy;
 use strum_macros::Display;
 
 pub mod ast;
+pub mod environment;
 pub mod expression;
+pub mod interpret;
 pub mod parse;
 pub mod scan;
-pub mod token;
-pub mod interpret;
 pub mod statement;
-pub mod environment;
+pub mod token;
 
+/// Prints an error message and the location into stderr
 pub fn report(line: usize, location: &str, message: &str) {
     eprintln!("[line {}] Error{}: {}", line, location, message);
 }

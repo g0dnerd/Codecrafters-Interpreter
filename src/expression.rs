@@ -1,10 +1,14 @@
+use crate::interpret::{is_equal, is_truthy, parenthesize};
+use crate::{
+    environment::Environment,
+    token::{BooleanLiteral, LiteralType, LiteralValue, NumberLiteral, StringLiteral, Token},
+    TokenType,
+};
 use std::fmt;
-use crate::{environment::Environment, token::{BooleanLiteral, LiteralType, LiteralValue, NumberLiteral, StringLiteral, Token}, TokenType};
-use crate::interpret::{is_truthy, is_equal, parenthesize};
 
 type Result<T> = std::result::Result<T, RuntimeError>;
 
-pub struct RuntimeError{
+pub struct RuntimeError {
     pub token: Token,
     pub message: String,
 }
@@ -32,7 +36,10 @@ impl Expression for Binary {
     }
 
     fn evaluate(&self, environment: &mut Environment) -> Result<Option<Box<dyn LiteralValue>>> {
-        if let (Some(left), Some(right)) = (self.left.evaluate(environment)?, self.right.evaluate(environment)?) {
+        if let (Some(left), Some(right)) = (
+            self.left.evaluate(environment)?,
+            self.right.evaluate(environment)?,
+        ) {
             let left_type = left.get_type();
             let right_type = right.get_type();
 
@@ -41,56 +48,85 @@ impl Expression for Binary {
 
             if self.operator.token_type == TokenType::BangEqual {
                 let eq = !is_equal(left, right);
-                return Ok(Some(Box::new(BooleanLiteral{ value: eq })));
+                return Ok(Some(Box::new(BooleanLiteral { value: eq })));
             } else if self.operator.token_type == TokenType::EqualEqual {
                 let eq = is_equal(left, right);
-                return Ok(Some(Box::new(BooleanLiteral{ value: eq })));
+                return Ok(Some(Box::new(BooleanLiteral { value: eq })));
             }
 
             if left_type == LiteralType::NumberLiteral && right_type == LiteralType::NumberLiteral {
-                let left_num = left_val.parse::<f32>()
+                let left_num = left_val
+                    .parse::<f32>()
                     .expect("to be able to parse left NumberLiteral in binary expression to f32");
-                let right_num = right_val.parse::<f32>()
+                let right_num = right_val
+                    .parse::<f32>()
                     .expect("to be able to parse right NumberLiteral in binary expression to f32");
 
                 match self.operator.token_type {
                     TokenType::Minus => {
-                        return Ok(Some(Box::new(NumberLiteral{ value: left_num - right_num })));
-                    },
+                        return Ok(Some(Box::new(NumberLiteral {
+                            value: left_num - right_num,
+                        })));
+                    }
                     TokenType::Slash => {
-                        return Ok(Some(Box::new(NumberLiteral{ value: left_num / right_num })));
-                    },
+                        return Ok(Some(Box::new(NumberLiteral {
+                            value: left_num / right_num,
+                        })));
+                    }
                     TokenType::Star => {
-                        return Ok(Some(Box::new(NumberLiteral{ value: left_num * right_num })));
-                    },
+                        return Ok(Some(Box::new(NumberLiteral {
+                            value: left_num * right_num,
+                        })));
+                    }
                     TokenType::Plus => {
-                        return Ok(Some(Box::new(NumberLiteral{ value: left_num + right_num })));
-                    },
+                        return Ok(Some(Box::new(NumberLiteral {
+                            value: left_num + right_num,
+                        })));
+                    }
                     TokenType::Greater => {
-                        return Ok(Some(Box::new(BooleanLiteral{ value: left_num > right_num })));
-                    },
+                        return Ok(Some(Box::new(BooleanLiteral {
+                            value: left_num > right_num,
+                        })));
+                    }
                     TokenType::GreaterEqual => {
-                        return Ok(Some(Box::new(BooleanLiteral{ value: left_num >= right_num })));
-                    },
+                        return Ok(Some(Box::new(BooleanLiteral {
+                            value: left_num >= right_num,
+                        })));
+                    }
                     TokenType::Less => {
-                        return Ok(Some(Box::new(BooleanLiteral{ value: left_num < right_num })));
-                    },
+                        return Ok(Some(Box::new(BooleanLiteral {
+                            value: left_num < right_num,
+                        })));
+                    }
                     TokenType::LessEqual => {
-                        return Ok(Some(Box::new(BooleanLiteral{ value: left_num <= right_num })));
-                    },
-                    _ => ()
+                        return Ok(Some(Box::new(BooleanLiteral {
+                            value: left_num <= right_num,
+                        })));
+                    }
+                    _ => (),
                 }
-            } else if left_type == LiteralType::StringLiteral && right_type == LiteralType::StringLiteral { 
+            } else if left_type == LiteralType::StringLiteral
+                && right_type == LiteralType::StringLiteral
+            {
                 if self.operator.token_type == TokenType::Plus {
                     let mut left_string = left_val.to_owned();
                     left_string.push_str(&right_val.to_owned());
-                    return Ok(Some(Box::new(StringLiteral{ value: left_string })));
+                    return Ok(Some(Box::new(StringLiteral { value: left_string })));
                 }
-                return Err(RuntimeError{ token: self.operator.clone(), message: String::from("Operands must be numbers.")});
+                return Err(RuntimeError {
+                    token: self.operator.clone(),
+                    message: String::from("Operands must be numbers."),
+                });
             }
-            Err(RuntimeError{ token: self.operator.clone(), message: String::from("Operands must be numbers or strings.")})
+            Err(RuntimeError {
+                token: self.operator.clone(),
+                message: String::from("Operands must be numbers or strings."),
+            })
         } else {
-            return Err(RuntimeError{ token: self.operator.clone(), message: String::from("expected value in expression")});
+            return Err(RuntimeError {
+                token: self.operator.clone(),
+                message: String::from("expected value in expression"),
+            });
         }
     }
 }
@@ -160,19 +196,34 @@ impl Expression for Unary {
             match self.operator.token_type {
                 TokenType::Minus => {
                     if !(right.get_type() == LiteralType::NumberLiteral) {
-                        return Err(RuntimeError{ token: self.operator.clone(), message: String::from("Operand must be a number.")});
+                        return Err(RuntimeError {
+                            token: self.operator.clone(),
+                            message: String::from("Operand must be a number."),
+                        });
                     }
-                    let num_value: f32 = right.print_value().parse()
+                    let num_value: f32 = right
+                        .print_value()
+                        .parse()
                         .expect("to be able to parse Number Literal to f32");
-                    return Ok(Some(Box::new(NumberLiteral{ value: -num_value })));
-                },
+                    return Ok(Some(Box::new(NumberLiteral { value: -num_value })));
+                }
                 TokenType::Bang => {
-                    return Ok(Some(Box::new(BooleanLiteral{ value: !is_truthy(right)})));
-                },
-                _ => return Err(RuntimeError{ token: self.operator.clone(), message: String::from("Operand must be a number.")})
+                    return Ok(Some(Box::new(BooleanLiteral {
+                        value: !is_truthy(right),
+                    })));
+                }
+                _ => {
+                    return Err(RuntimeError {
+                        token: self.operator.clone(),
+                        message: String::from("Operand must be a number."),
+                    })
+                }
             }
         }
-        Err(RuntimeError{ token: self.operator.clone(), message: String::from("Expected value in unary expression")})
+        Err(RuntimeError {
+            token: self.operator.clone(),
+            message: String::from("Expected value in unary expression"),
+        })
     }
 }
 
@@ -191,7 +242,7 @@ impl Expression for Variable {
     }
 
     fn evaluate(&self, environment: &mut Environment) -> Result<Option<Box<dyn LiteralValue>>> {
-        environment.get(self.name.clone()) 
+        environment.get(self.name.clone())
     }
 }
 impl Variable {

@@ -1,8 +1,8 @@
-use unicode_segmentation::UnicodeSegmentation;
-use regex::Regex;
 use crate::token::{LiteralValue, NumberLiteral, StringLiteral, Token};
 use crate::{report, TokenType, KEYWORDS};
+use regex::Regex;
 use std::fmt;
+use unicode_segmentation::UnicodeSegmentation;
 
 type Result<T> = std::result::Result<T, UnexpectedCharacterError>;
 
@@ -241,7 +241,7 @@ impl Scanner {
 
         // Parse the string literals value from source
         let literal = StringLiteral {
-            value: self.graphemes[self.start + 1..self.current - 1].concat()
+            value: self.graphemes[self.start + 1..self.current - 1].concat(),
         };
 
         self.add_literal_token(TokenType::String, Some(Box::new(literal)));
@@ -302,7 +302,7 @@ impl fmt::Display for Scanner {
 fn is_digit(grapheme: &str) -> bool {
     match grapheme {
         "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" => return true,
-        _ => return false
+        _ => return false,
     }
 }
 

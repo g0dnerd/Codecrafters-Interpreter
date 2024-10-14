@@ -1,101 +1,102 @@
-use std::env;
-use std::fs;
-use std::process::ExitCode;
+use clap::{Args, Parser, Subcommand};
+use std::{fs, process::ExitCode};
 
-use codecrafters_interpreter::environment::Environment;
-use codecrafters_interpreter::expression::Expression;
-use codecrafters_interpreter::ast::print_expr;
-use codecrafters_interpreter::interpret::interpret_single_expr;
-use codecrafters_interpreter::interpret::Interpreter;
-use codecrafters_interpreter::parse::Parser;
-use codecrafters_interpreter::parse::ParserError;
-use codecrafters_interpreter::scan::Scanner;
-use codecrafters_interpreter::token::Token;
-use codecrafters_interpreter::statement::Statement;
+use codecrafters_interpreter::{
+    ast::print_expr,
+    environment::Environment,
+    expression::Expression,
+    interpret::{interpret_single_expr, Interpreter},
+    parse,
+    scan::Scanner,
+    statement::Statement,
+    token::Token,
+};
+
+#[derive(Parser, Debug)]
+#[command(version, about, long_about = None)]
+struct Cli {
+    #[command(subcommand)]
+    command: Commands,
+}
+
+#[derive(Debug, Subcommand)]
+enum Commands {
+    Tokenize(FilenameArg),
+    Parse(FilenameArg),
+    Evaluate(FilenameArg),
+    Run(FilenameArg),
+}
+
+#[derive(Args, Debug)]
+struct FilenameArg {
+    filename: String,
+}
 
 fn main() -> ExitCode {
-    let args: Vec<String> = env::args().collect();
-    if args.len() < 3 {
-        eprintln!("Usage: {} tokenize <filename>", args[0]);
-        return ExitCode::SUCCESS;
-    }
+    let args = Cli::parse();
 
-    let command = &args[1];
-    let filename = &args[2];
+    let parse_err_exit_code: ExitCode = ExitCode::from(65);
+    let runtime_err_exit_code: ExitCode = ExitCode::from(70);
 
-    match command.as_str() {
-        "tokenize" => {
-            // You can use print statements as follows for debugging, they'll be visible when running tests.
-            // eprintln!("Logs from your program will appear here!");
-            let file_contents = read_file_contents(filename);
+    match &args.command {
+        Commands::Tokenize(f) => {
+            let file_contents =
+                fs::read_to_string(&f.filename).expect("unable to read the given file");
             match tokenize(file_contents) {
                 Ok(scanner) => println!("{scanner}"),
                 Err(scanner) => {
                     println!("{scanner}");
-                    return ExitCode::from(65);
+                    return parse_err_exit_code;
                 }
             }
         }
-        "parse" => {
-            let file_contents = read_file_contents(filename);
+        Commands::Parse(f) => {
+            let file_contents =
+                fs::read_to_string(&f.filename).expect("unable to read the given file");
             match tokenize(file_contents) {
-                Ok(scanner) => match parse_(scanner.tokens) {
-                    Ok(expr) => {
-                        print_expr(&expr);
-                    },
-                    Err(_) => {
-                        eprintln!("Damn.");
-                        return ExitCode::from(65);
-                    }
+                Ok(scanner) => match parse_print_single_expr(scanner.tokens) {
+                    Ok(expr) => print_expr(&expr),
+                    Err(_) => return parse_err_exit_code,
                 },
-                Err(_) => return ExitCode::from(65),
+                Err(_) => return parse_err_exit_code,
             }
-        },
-        "evaluate" => {
-            let file_contents = read_file_contents(filename);
+        }
+        Commands::Evaluate(f) => {
+            let file_contents =
+                fs::read_to_string(&f.filename).expect("unable to read the given file");
             match tokenize(file_contents) {
-                Ok(scanner) => match parse_(scanner.tokens) {
+                Ok(scanner) => match parse_print_single_expr(scanner.tokens) {
                     Ok(expr) => {
                         let mut environment = Environment::new();
                         match interpret_single_expr(expr, &mut environment) {
-                            Ok(_) => return ExitCode::from(0),
-                            Err(_) => return ExitCode::from(70)
+                            Ok(_) => return ExitCode::SUCCESS,
+                            Err(_) => return runtime_err_exit_code,
                         }
-                    },
-                    Err(_) => return ExitCode::from(70)
+                    }
+                    Err(_) => return runtime_err_exit_code,
                 },
-                Err(_) => return ExitCode::from(65),
+                Err(_) => return parse_err_exit_code,
             }
-        },
-        "run" => {
-            let file_contents = read_file_contents(filename);
+        }
+        Commands::Run(f) => {
+            let file_contents =
+                fs::read_to_string(&f.filename).expect("unable to read the given file");
             match tokenize(file_contents) {
                 Ok(scanner) => match parse(scanner.tokens) {
                     Ok(stmts) => {
                         let mut interpreter = Interpreter::new(stmts);
                         match interpreter.interpret() {
                             Ok(_) => return ExitCode::SUCCESS,
-                            Err(_) => return ExitCode::from(70)
+                            Err(_) => return runtime_err_exit_code,
                         }
-                    },
-                    Err(_) => return ExitCode::from(65)
+                    }
+                    Err(_) => return parse_err_exit_code,
                 },
-                Err(_) => return ExitCode::from(65),
+                Err(_) => return parse_err_exit_code,
             }
-        },
-        _ => {
-            eprintln!("Unknown command: {}", command);
-            return ExitCode::FAILURE;
         }
     }
     ExitCode::SUCCESS
-}
-
-fn read_file_contents(filename: &String) -> String {
-    return fs::read_to_string(filename).unwrap_or_else(|_| {
-        eprintln!("Failed to read file {}", filename);
-        String::new()
-    });
 }
 
 fn tokenize(file_contents: String) -> Result<Scanner, Scanner> {
@@ -107,18 +108,12 @@ fn tokenize(file_contents: String) -> Result<Scanner, Scanner> {
     Ok(scanner)
 }
 
-fn parse_(tokens: Vec<Token>) -> Result<Box<dyn Expression>, ParserError> {
-    let mut parser = Parser::new(tokens);
-    match parser.parse_() {
-        Ok(expr) => return Ok(expr),
-        Err(e) => return Err(e)
-    }
+fn parse_print_single_expr(tokens: Vec<Token>) -> Result<Box<dyn Expression>, parse::ParserError> {
+    let mut parser = parse::Parser::new(tokens);
+    parser.parse_single_expr()
 }
 
-fn parse(tokens: Vec<Token>) -> Result<Vec<Box<dyn Statement>>, ParserError> {
-    let mut parser = Parser::new(tokens);
-    match parser.parse() {
-        Ok(stmts) => return Ok(stmts),
-        Err(e) => return Err(e)
-    }
+fn parse(tokens: Vec<Token>) -> Result<Vec<Box<dyn Statement>>, parse::ParserError> {
+    let mut parser = parse::Parser::new(tokens);
+    parser.parse()
 }

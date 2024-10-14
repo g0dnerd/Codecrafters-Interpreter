@@ -1,10 +1,13 @@
+use crate::{
+    expression::RuntimeError,
+    token::{LiteralValue, Token},
+};
 use std::collections::HashMap;
-use crate::{expression::RuntimeError, token::{LiteralValue, Token}};
 
 type Result<T> = std::result::Result<T, RuntimeError>;
 
 pub struct Environment {
-    values: HashMap<String, Option<Box<dyn LiteralValue>>>
+    values: HashMap<String, Option<Box<dyn LiteralValue>>>,
 }
 impl Environment {
     pub fn new() -> Self {
@@ -21,7 +24,10 @@ impl Environment {
             return Ok(item.clone());
         } else {
             let message = format!("Undefined variable '{}'.", name.lexeme);
-            return Err(RuntimeError{ token: name, message });
+            return Err(RuntimeError {
+                token: name,
+                message,
+            });
         }
     }
 }

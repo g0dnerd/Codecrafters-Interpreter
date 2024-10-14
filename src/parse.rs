@@ -1,7 +1,7 @@
 use crate::expression::{Binary, Expression, Grouping, Literal, Unary, Variable};
+use crate::statement::{ExpressionStatement, PrintStatement, Statement, VarStatement};
 use crate::token::{BooleanLiteral, NilLiteral, Token};
 use crate::TokenType;
-use crate::statement::{ExpressionStatement, PrintStatement, Statement, VarStatement};
 use std::fmt;
 
 type Result<T> = std::result::Result<T, ParserError>;
@@ -31,7 +31,7 @@ impl fmt::Display for ParserError {
             Self::NoSemicolon(t) => match t.token_type {
                 TokenType::Eof => write!(f, "at end: Missing semicolon"),
                 _ => write!(f, "Missing semicolon after {}", t.to_string()),
-            }
+            },
         }
     }
 }
@@ -46,8 +46,9 @@ impl Parser {
         Self { tokens, current: 0 }
     }
 
+    /// Parses and prints a single expression
     /// Left in for legacy tests
-    pub fn parse_(&mut self) -> Result<Box<dyn Expression>> {
+    pub fn parse_single_expr(&mut self) -> Result<Box<dyn Expression>> {
         match self.expression() {
             Ok(expr) => return Ok(expr),
             Err(e) => {
@@ -63,7 +64,7 @@ impl Parser {
             match self.declaration() {
                 Ok(stmt) => {
                     statements.push(stmt);
-                },
+                }
                 Err(e) => {
                     eprintln!("Error: {e}");
                     return Err(e);
@@ -212,7 +213,9 @@ impl Parser {
         if self.is_at_end() {
             return false;
         }
-        self.peek().token_type == token_type
+        let p = self.peek();
+        let out = p.token_type == token_type;
+        out
     }
 
     fn advance(&mut self) -> Token {
@@ -279,16 +282,16 @@ impl Parser {
     fn var_declaration(&mut self) -> Result<Box<dyn Statement>> {
         match self.consume(TokenType::Identifier) {
             Ok(t) => {
+                let mut initializer: Option<Box<dyn Expression>> = None;
                 if self.match_tokens(vec![TokenType::Equal]) {
-                    let initializer = self.expression()?;
-                    match self.consume(TokenType::Semicolon) {
-                        Ok(_) => (),
-                        Err(e) => return Err(e)
-                    }
-                    return Ok(Box::new(VarStatement::new(t, Some(initializer))));
+                    initializer = Some(self.expression()?);
                 }
-                return Ok(Box::new(VarStatement::new(t, None)));
-            },
+                match self.consume(TokenType::Semicolon) {
+                    Ok(_) => (),
+                    Err(e) => return Err(e),
+                }
+                return Ok(Box::new(VarStatement::new(t, initializer)));
+            }
             Err(e) => {
                 return Err(e);
             }
